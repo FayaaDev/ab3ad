@@ -90,6 +90,7 @@
       "missingUploadResult": "لم تُرجع عملية الرفع نتيجة.",
       "uploadFailed": "فشل الرفع.",
       "missingAssetIds": "اكتمل الرفع، لكن لم يتم إرجاع معرّفات الملفات.",
+      "insufficientBalance": "يرجى شحن رصيد حسابك لتتمكن من رفع الصور.",
       "generationRequestFailed": "فشل طلب التوليد.",
       "generationStartFailed": "تعذر بدء التوليد."
     }

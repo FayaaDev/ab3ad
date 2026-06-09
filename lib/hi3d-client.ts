@@ -1,11 +1,20 @@
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
+import { getHi3DEnvelopeData, getHi3DError, getHi3DResult, getHi3DStatus } from '@/lib/hi3d-contract';
+import { normalizeHi3DFaceCount } from '@/lib/validation';
 import type { FileAsset, GenerationJob, Hi3DQueryResponse, Hi3DTaskResponse } from '@/lib/types';
 import { readStorageObject } from '@/lib/storage';
 import { sleep } from '@/lib/utils';
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 const mockTasks = new Map<string, { createdAt: number }>();
+
+export const HI3D_LOW_BALANCE_MESSAGE = 'please Credit your account to be able to upload images';
+
+export function resetHi3DClientState() {
+  cachedToken = null;
+  mockTasks.clear();
+}
 
 function isMockMode() {
   return (process.env.HI3D_MODE ?? 'mock') === 'mock';
@@ -56,6 +65,24 @@ function appendConfiguredSubmitFields(form: FormData) {
   }
 }
 
+export function normalizeHi3DErrorMessage(message: string) {
+  if (/balance is not enough/i.test(message) || /\(30010000\)/.test(message)) {
+    return HI3D_LOW_BALANCE_MESSAGE;
+  }
+
+  return message;
+}
+
+function assertSuccessfulEnvelope(payload: Record<string, unknown>, fallbackMessage: string) {
+  const code = payload.code;
+  if (code === undefined || code === null || String(code) === '200') {
+    return;
+  }
+
+  const message = typeof payload.msg === 'string' ? payload.msg : typeof payload.message === 'string' ? payload.message : fallbackMessage;
+  throw new Error(normalizeHi3DErrorMessage(`${message} (${String(code)})`));
+}
+
 async function getAccessToken() {
   if (isMockMode()) {
     return 'mock-token';
@@ -73,10 +100,11 @@ async function getAccessToken() {
   }
 
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await fetchWithTimeout(`${baseUrl}/open-api/oauth/token`, {
+  const response = await fetchWithTimeout(`${baseUrl}/open-api/v1/auth/token`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${auth}`,
+      'Content-Type': 'application/json',
     },
   });
 
@@ -84,17 +112,20 @@ async function getAccessToken() {
     throw new Error(`Hi3D token request failed with ${response.status}${await readErrorBody(response)}`);
   }
 
-  const data = (await response.json()) as { access_token?: string; expires_in?: number };
-  if (!data.access_token) {
-    throw new Error('Hi3D token response missing access_token.');
+  const payload = (await response.json()) as Record<string, unknown>;
+  assertSuccessfulEnvelope(payload, 'Hi3D token request failed.');
+  const data = getHi3DEnvelopeData(payload);
+  const accessToken = typeof data.accessToken === 'string' ? data.accessToken : undefined;
+  if (!accessToken) {
+    throw new Error('Hi3D token response missing data.accessToken.');
   }
 
   cachedToken = {
-    value: data.access_token,
-    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+    value: accessToken,
+    expiresAt: Date.now() + 3600 * 1000,
   };
 
-  return data.access_token;
+  return accessToken;
 }
 
 export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promise<Hi3DTaskResponse> {
@@ -113,7 +144,7 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
   form.set('format', '2');
   form.set('resolution', job.resolution);
   form.set('pbr', job.pbr ? '1' : '0');
-  form.set('face_count', job.faceCount);
+  form.set('face', normalizeHi3DFaceCount(job.faceCount));
   appendConfiguredSubmitFields(form);
 
   for (const asset of assets) {
@@ -139,12 +170,15 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
     throw new Error(`Hi3D submit failed with ${response.status}${await readErrorBody(response)}`);
   }
 
-  const data = (await response.json()) as { task_id?: string } & Record<string, unknown>;
-  if (!data.task_id) {
+  const payload = (await response.json()) as Record<string, unknown>;
+  assertSuccessfulEnvelope(payload, 'Hi3D submit failed.');
+  const data = getHi3DEnvelopeData(payload);
+  const taskId = typeof data.task_id === 'string' ? data.task_id : undefined;
+  if (!taskId) {
     throw new Error('Hi3D submit response missing task_id.');
   }
 
-  return { taskId: data.task_id, raw: data };
+  return { taskId, raw: payload };
 }
 
 export async function queryTask(taskId: string): Promise<Hi3DQueryResponse> {
@@ -182,21 +216,25 @@ export async function queryTask(taskId: string): Promise<Hi3DQueryResponse> {
     throw new Error(`Hi3D query failed with ${response.status}${await readErrorBody(response)}`);
   }
 
-  const data = (await response.json()) as Record<string, unknown>;
-  const status = String(data.status ?? '').toLowerCase();
-  if (!['created', 'queueing', 'processing', 'success', 'failed'].includes(status)) {
-    throw new Error(`Unknown Hi3D task status: ${status}`);
+  const payload = (await response.json()) as Record<string, unknown>;
+  assertSuccessfulEnvelope(payload, 'Hi3D query failed.');
+  const status = getHi3DStatus(payload);
+  if (!status) {
+    throw new Error(`Unknown Hi3D task status: ${String(getHi3DEnvelopeData(payload).state ?? '')}`);
   }
 
+  const { errorCode, errorMessage } = getHi3DError(payload);
+  const result = getHi3DResult(payload);
+
   return {
-    status: status as Hi3DQueryResponse['status'],
-    raw: data,
-    errorCode: data.error_code ? String(data.error_code) : undefined,
-    errorMessage: data.error_message ? String(data.error_message) : undefined,
-    result: data.model_url
+    status,
+    raw: payload,
+    errorCode,
+    errorMessage,
+    result: result.modelUrl
       ? {
-          modelUrl: String(data.model_url),
-          coverUrl: data.cover_url ? String(data.cover_url) : undefined,
+          modelUrl: result.modelUrl,
+          coverUrl: result.coverUrl,
         }
       : undefined,
   };

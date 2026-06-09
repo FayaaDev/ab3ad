@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getFileAssets } from '@/lib/store';
 import { enqueueJobProcessing } from '@/lib/queue';
-import { generationSchema, qualityToResolution, validateAssetsForMode } from '@/lib/validation';
+import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, generationSchema, qualityToResolution, validateAssetsForMode } from '@/lib/validation';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       status: 'queued',
       model: payload.model,
       resolution: qualityToResolution(payload.quality),
-      faceCount: payload.mode === 'single_image' ? 'standard' : 'high',
+      faceCount: payload.mode === 'single_image' ? DEFAULT_SINGLE_IMAGE_FACE_COUNT : 'high',
       pbr: payload.pbr,
       outputFormat: payload.outputFormat,
     });

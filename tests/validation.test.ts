@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mapHi3DStatus } from '../lib/utils';
-import { qualityToResolution, validateAssetsForMode } from '../lib/validation';
+import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, normalizeHi3DFaceCount, qualityToResolution, validateAssetsForMode } from '../lib/validation';
 import type { FileAsset } from '../lib/types';
 
 const baseAsset: FileAsset = {
@@ -19,6 +19,11 @@ const baseAsset: FileAsset = {
 test('quality presets map to Hi3D resolutions', () => {
   assert.equal(qualityToResolution('fast'), '1536fast');
   assert.equal(qualityToResolution('high'), '1536pro');
+});
+
+test('legacy single-image face preset maps to Hi3D face count', () => {
+  assert.equal(normalizeHi3DFaceCount('standard'), DEFAULT_SINGLE_IMAGE_FACE_COUNT);
+  assert.equal(normalizeHi3DFaceCount(DEFAULT_SINGLE_IMAGE_FACE_COUNT), DEFAULT_SINGLE_IMAGE_FACE_COUNT);
 });
 
 test('single-image mode requires exactly one asset', () => {

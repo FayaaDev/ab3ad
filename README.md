@@ -38,6 +38,7 @@ Open http://localhost:3000, create or sign into an account, then upload images.
 ## Production readiness notes
 
 - `HI3D_MODE=mock` is only for local/dev. Set `HI3D_MODE=real` in production for Ab3ad3d processing.
+- Real Image-to-3D mode expects the current Hitem3D API host and envelope contract: `HI3D_BASE_URL=https://api.hitem3d.ai`, token requests go to `/open-api/v1/auth/token`, and submit/query responses return fields under `data`.
 - `AUTH_SECRET` is required outside mock/demo usage; use a long random value.
 - `npm run worker` must be running for background submission, polling fallback, and result download processing.
 - `HI3D_CALLBACK_SECRET` secures the Ab3ad3d callback endpoint. The app accepts either:

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
+import { getHi3DError, getHi3DResult } from '@/lib/hi3d-contract';
 import { getPool } from '@/lib/db';
 import {
   addBillingEvent,
@@ -10,7 +11,7 @@ import {
   getJobWithAssets,
   updateGenerationJob,
 } from '@/lib/store';
-import { queryTask, submitTask } from '@/lib/hi3d-client';
+import { normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
 import { enqueueJobProcessing } from '@/lib/queue';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
 import { mapHi3DStatus, nowIso } from '@/lib/utils';
@@ -71,48 +72,59 @@ export async function processJob(jobId: string) {
     return;
   }
 
-  if (job.status === 'queued') {
-    await addJobEvent({ jobId, eventType: 'submit_started', payload: {} });
-    const submission = await submitTask(job, assets);
+  try {
+    if (job.status === 'queued') {
+      await addJobEvent({ jobId, eventType: 'submit_started', payload: {} });
+      const submission = await submitTask(job, assets);
+      await updateGenerationJob(jobId, {
+        status: 'submitted_to_hi3d',
+        hi3dTaskId: submission.taskId,
+        errorCode: undefined,
+        errorMessage: undefined,
+        pollAttempts: 0,
+      });
+      await addJobEvent({ jobId, eventType: 'submitted_to_hi3d', payload: submission.raw });
+    }
+
+    const latest = await getJobWithAssets(jobId);
+    if (!latest.job?.hi3dTaskId) {
+      return;
+    }
+    if (latest.job.status === 'completed' || latest.job.resultAssetId) {
+      return;
+    }
+
+    const query = await queryTask(latest.job.hi3dTaskId);
+    const nextPollAttempts = (latest.job.pollAttempts ?? 0) + 1;
     await updateGenerationJob(jobId, {
-      status: 'submitted_to_hi3d',
-      hi3dTaskId: submission.taskId,
-      errorCode: undefined,
-      errorMessage: undefined,
-      pollAttempts: 0,
+      status: mapHi3DStatus(query.status),
+      errorCode: query.errorCode,
+      errorMessage: query.errorMessage,
+      pollAttempts: nextPollAttempts,
     });
-    await addJobEvent({ jobId, eventType: 'submitted_to_hi3d', payload: submission.raw });
-  }
+    await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
 
-  const latest = await getJobWithAssets(jobId);
-  if (!latest.job?.hi3dTaskId) {
-    return;
-  }
-  if (latest.job.status === 'completed' || latest.job.resultAssetId) {
-    return;
-  }
+    if (query.status === 'success' && query.result) {
+      await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl);
+      return;
+    }
 
-  const query = await queryTask(latest.job.hi3dTaskId);
-  const nextPollAttempts = (latest.job.pollAttempts ?? 0) + 1;
-  await updateGenerationJob(jobId, {
-    status: mapHi3DStatus(query.status),
-    errorCode: query.errorCode,
-    errorMessage: query.errorMessage,
-    pollAttempts: nextPollAttempts,
-  });
-  await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
+    if (query.status === 'failed') {
+      await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: query.errorCode, errorMessage: query.errorMessage } });
+      return;
+    }
 
-  if (query.status === 'success' && query.result) {
-    await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl);
-    return;
+    await scheduleNextPoll(jobId, nextPollAttempts);
+  } catch (error) {
+    const errorMessage = normalizeHi3DErrorMessage(error instanceof Error ? error.message : 'Unknown Hi3D error');
+    await updateGenerationJob(jobId, {
+      status: 'failed',
+      errorCode: 'hi3d_request_failed',
+      errorMessage,
+    });
+    await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: 'hi3d_request_failed', errorMessage } });
+    throw error;
   }
-
-  if (query.status === 'failed') {
-    await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: query.errorCode, errorMessage: query.errorMessage } });
-    return;
-  }
-
-  await scheduleNextPoll(jobId, nextPollAttempts);
 }
 
 async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string) {
@@ -199,17 +211,16 @@ export async function handleHi3DCallback(taskId: string, status: 'created' | 'qu
 
   await updateGenerationJob(job.id, {
     status: mapHi3DStatus(status),
-    errorCode: payload.error_code ? String(payload.error_code) : undefined,
-    errorMessage: payload.error_message ? String(payload.error_message) : undefined,
+    ...getHi3DError(payload),
   });
   await addJobEvent({ jobId: job.id, eventType: `callback_${status}`, payload });
 
   if (status === 'success') {
-    const modelUrl = payload.model_url ? String(payload.model_url) : '';
+    const { modelUrl, coverUrl } = getHi3DResult(payload);
     if (!modelUrl) {
-      throw new Error('Callback missing model_url');
+      throw new Error('Callback missing result URL');
     }
-    await downloadResult(job.id, modelUrl, payload.cover_url ? String(payload.cover_url) : undefined);
+    await downloadResult(job.id, modelUrl, coverUrl);
   }
 }
 

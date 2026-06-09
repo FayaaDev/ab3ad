@@ -15,6 +15,8 @@ export const generationSchema = z.object({
   pbr: z.boolean().default(true),
 });
 
+export const DEFAULT_SINGLE_IMAGE_FACE_COUNT = '800000';
+
 export function assertValidUpload(file: File, buffer: Buffer) {
   if (!file.size || file.size <= 0) {
     throw new Error('Empty file uploads are not allowed.');
@@ -71,4 +73,8 @@ export function validateAssetsForMode(mode: GenerationMode, assets: FileAsset[])
 
 export function qualityToResolution(quality: 'fast' | 'high') {
   return quality === 'fast' ? '1536fast' : '1536pro';
+}
+
+export function normalizeHi3DFaceCount(faceCount: string) {
+  return faceCount === 'standard' ? DEFAULT_SINGLE_IMAGE_FACE_COUNT : faceCount;
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getHi3DStatus, getHi3DTaskId } from '@/lib/hi3d-contract';
 import { verifyHi3DCallbackSignature } from '@/lib/hi3d-security';
 import { handleHi3DCallback } from '@/lib/job-runner';
 
@@ -12,10 +13,10 @@ export async function POST(request: Request) {
     }
 
     const payload = JSON.parse(rawBody) as Record<string, unknown>;
-    const taskId = String(payload.task_id ?? '');
-    const status = String(payload.status ?? '') as 'created' | 'queueing' | 'processing' | 'success' | 'failed';
+    const taskId = getHi3DTaskId(payload);
+    const status = getHi3DStatus(payload);
 
-    if (!taskId || !['created', 'queueing', 'processing', 'success', 'failed'].includes(status)) {
+    if (!taskId || !status) {
       return NextResponse.json({ error: 'Invalid callback payload.' }, { status: 400 });
     }
 
