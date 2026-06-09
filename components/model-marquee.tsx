@@ -15,31 +15,31 @@ const models: PreviewModel[] = [
     title: 'عبدو',
     caption: 'نموذج واقعي من الأصول المحلية',
     finish: 'GLB جاهز',
-    src: '/api/assets/Abdo-Hitem3d.glb',
+    src: '/api/assets/samples/Abdo-Hitem3d.glb',
   },
   {
     title: 'أليسا',
     caption: 'معاينة تفاعلية داخل جدار العرض',
     finish: 'ملف أصلي',
-    src: '/api/assets/Alisa.glb',
+    src: '/api/assets/samples/Alisa.glb',
   },
   {
     title: 'دابريني',
     caption: 'عرض مباشر بدل البطاقات الوهمية',
     finish: 'تفاصيل كاملة',
-    src: '/api/assets/dabbrini.glb',
+    src: '/api/assets/samples/dabbrini.glb',
   },
   {
     title: 'ساجر',
     caption: 'دوران تلقائي لإبراز المجسم',
     finish: 'جاهز للاستعراض',
-    src: '/api/assets/Sager-Hitem3d.glb',
+    src: '/api/assets/samples/Sager-Hitem3d.glb',
   },
   {
     title: 'طلال',
     caption: 'يُحمّل من مجلد assets مباشرة',
     finish: 'أصل محلي',
-    src: '/api/assets/Talal-Hitem3d.glb',
+    src: '/api/assets/samples/Talal-Hitem3d.glb',
   },
 ];
 
