@@ -37,11 +37,11 @@
       {
         "title": "محمد عبدة",
         "caption": "فنان العرب",
-        "src": "/api/assets/samples/Abdo-Hitem3d.glb"
+        "src": "/api/assets/samples/Abdo-Ab3ad3d.glb"
       },
       {
         "title": "أليسا",
-        "caption": "مكلة الاحساس",
+        "caption": "ملكة الاحساس",
         "src": "/api/assets/samples/Alisa.glb"
       },
       {
@@ -52,12 +52,12 @@
       {
         "title": "رابح صقر",
         "caption": "موسيقار الخليج",
-        "src": "/api/assets/samples/Sager-Hitem3d.glb"
+        "src": "/api/assets/samples/Sager-Ab3ad3d.glb"
       },
       {
         "title": "طلال مداح",
         "caption": "صوت الارض",
-        "src": "/api/assets/samples/Talal-Hitem3d.glb"
+        "src": "/api/assets/samples/Talal-Ab3ad3d.glb"
       }
     ]
   },
@@ -138,7 +138,7 @@
   "jobPage": {
     "eyebrow": "تقدّم المهمة",
     "title": "تابع سجل التوليد لحظة بلحظة.",
-    "description": "نعرض الإرسال، ومعالجة Hi3D، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.",
+    "description": "نعرض الإرسال، ومعالجة Ab3ad3d، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.",
     "reference": "مرجع",
     "jobId": "معرّف المهمة",
     "expectedOutput": "المخرجات المتوقعة",
@@ -199,9 +199,9 @@
   },
   "statusLabels": {
     "queued": "في الانتظار",
-    "submitted_to_hi3d": "تم الإرسال إلى Hi3D",
+    "submitted_to_hi3d": "تم الإرسال إلى Ab3ad3d",
     "hi3d_created": "تم إنشاء المهمة",
-    "hi3d_queueing": "في طابور Hi3D",
+    "hi3d_queueing": "في طابور Ab3ad3d",
     "hi3d_processing": "قيد المعالجة",
     "downloading_result": "جارِ تنزيل النتيجة",
     "completed": "مكتمل",
@@ -213,11 +213,11 @@
   "eventLabels": {
     "job_queued": "أُضيفت المهمة إلى الطابور",
     "submit_started": "بدأ تجهيز الإرسال",
-    "submitted_to_hi3d": "تم الإرسال إلى Hi3D",
-    "hi3d_created": "أنشأ Hi3D المهمة",
-    "hi3d_queueing": "المهمة في طابور Hi3D",
-    "hi3d_processing": "Hi3D يعالج النموذج",
-    "hi3d_success": "أعاد Hi3D النتيجة",
+    "submitted_to_hi3d": "تم الإرسال إلى Ab3ad3d",
+    "hi3d_created": "أنشأ Ab3ad3d المهمة",
+    "hi3d_queueing": "المهمة في طابور Ab3ad3d",
+    "hi3d_processing": "Ab3ad3d يعالج النموذج",
+    "hi3d_success": "أعاد Ab3ad3d النتيجة",
     "job_failed": "فشلت المهمة",
     "download_started": "بدأ تنزيل النتيجة",
     "download_failed": "فشل تنزيل النتيجة",

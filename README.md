@@ -1,6 +1,6 @@
 # ab3ad
 
-Next.js app for turning uploaded images into Hi3D generation jobs with PostgreSQL, Redis/BullMQ, and Cloudflare R2 storage.
+Next.js app for turning uploaded images into Ab3ad3d generation jobs with PostgreSQL, Redis/BullMQ, and Cloudflare R2 storage.
 
 ## What is included
 
@@ -18,7 +18,7 @@ Next.js app for turning uploaded images into Hi3D generation jobs with PostgreSQ
 - PostgreSQL persistence for users, assets, jobs, events, and billing entries
 - Redis + BullMQ queueing for generation work
 - Cloudflare R2 storage for uploads and generated results
-- Mock Hi3D mode for local development
+- Mock Ab3ad3d mode for local development
 
 ## Run locally
 
@@ -37,14 +37,14 @@ Open http://localhost:3000, create or sign into an account, then upload images.
 
 ## Production readiness notes
 
-- `HI3D_MODE=mock` is only for local/dev. Set `HI3D_MODE=real` in production.
+- `HI3D_MODE=mock` is only for local/dev. Set `HI3D_MODE=real` in production for Ab3ad3d processing.
 - `AUTH_SECRET` is required outside mock/demo usage; use a long random value.
 - `npm run worker` must be running for background submission, polling fallback, and result download processing.
-- `HI3D_CALLBACK_SECRET` secures the callback endpoint. The app accepts either:
+- `HI3D_CALLBACK_SECRET` secures the Ab3ad3d callback endpoint. The app accepts either:
   - `Authorization: Bearer <secret>`
   - `x-hi3d-callback-secret: <secret>`
   - `x-hi3d-signature: sha256=<hmac(rawBody)>`
-- `HI3D_CALLBACK_URL_FIELD`, `HI3D_CALLBACK_SECRET_FIELD`, and `HI3D_SUBMIT_EXTRA_FIELDS` let you adapt submit payload fields to the exact Hi3D production contract without code changes.
+- `HI3D_CALLBACK_URL_FIELD`, `HI3D_CALLBACK_SECRET_FIELD`, and `HI3D_SUBMIT_EXTRA_FIELDS` let you adapt submit payload fields to the exact Ab3ad3d production contract without code changes.
 - Result downloads can be restricted with `HI3D_ALLOWED_RESULT_HOSTS=host1,host2`.
 - `/api/health` is restricted to signed-in admins unless you provide `HEALTHCHECK_TOKEN` via `Authorization: Bearer ...` or `x-healthcheck-token`.
 - R2 is the default object storage backend. Set `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`.
@@ -61,4 +61,4 @@ npm run build
 npm run healthcheck
 ```
 
-`npm run healthcheck` verifies PostgreSQL schema access, Redis/queue connectivity, storage readiness, and the active Hi3D mode/configuration.
+`npm run healthcheck` verifies PostgreSQL schema access, Redis/queue connectivity, storage readiness, and the active Ab3ad3d mode/configuration.

@@ -6,11 +6,11 @@ import { NextResponse } from 'next/server';
 
 const ASSET_DIRECTORY = path.join(process.cwd(), 'assets');
 const ALLOWED_ASSETS = new Set([
-  'Abdo-Hitem3d.glb',
+  'Abdo-Ab3ad3d.glb',
   'Alisa.glb',
   'dabbrini.glb',
-  'Sager-Hitem3d.glb',
-  'Talal-Hitem3d.glb',
+  'Sager-Ab3ad3d.glb',
+  'Talal-Ab3ad3d.glb',
 ]);
 
 export async function GET(_: Request, context: { params: Promise<{ name: string }> }) {
