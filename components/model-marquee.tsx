@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { createElement } from 'react';
 
 import { Marquee } from '@/components/ui/marquee';
+import { messages } from '@/lib/messages';
 
 type PreviewModel = {
   title: string;
@@ -12,38 +13,7 @@ type PreviewModel = {
   src: string;
 };
 
-const models: PreviewModel[] = [
-  {
-    title: 'عبدو',
-    caption: 'نموذج واقعي من الأصول المحلية',
-    finish: 'GLB جاهز',
-    src: '/api/assets/samples/Abdo-Hitem3d.glb',
-  },
-  {
-    title: 'أليسا',
-    caption: 'معاينة تفاعلية داخل جدار العرض',
-    finish: 'ملف أصلي',
-    src: '/api/assets/samples/Alisa.glb',
-  },
-  {
-    title: 'دابريني',
-    caption: 'عرض مباشر بدل البطاقات الوهمية',
-    finish: 'تفاصيل كاملة',
-    src: '/api/assets/samples/dabbrini.glb',
-  },
-  {
-    title: 'ساجر',
-    caption: 'دوران تلقائي لإبراز المجسم',
-    finish: 'جاهز للاستعراض',
-    src: '/api/assets/samples/Sager-Hitem3d.glb',
-  },
-  {
-    title: 'طلال',
-    caption: 'يُحمّل من مجلد assets مباشرة',
-    finish: 'أصل محلي',
-    src: '/api/assets/samples/Talal-Hitem3d.glb',
-  },
-];
+const models = messages.modelMarquee.models as PreviewModel[];
 
 function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   return (
@@ -57,7 +27,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
           src,
           alt: title,
           className:
-            'block h-full w-full bg-transparent [--poster-color:transparent] transition-transform duration-500 group-hover:scale-[1.02]',
+            'pointer-events-none block h-full w-full select-none bg-transparent [--poster-color:transparent] transition-transform duration-500 group-hover:scale-[1.02]',
           loading: 'eager',
           reveal: 'auto',
           interactionPrompt: 'none',
@@ -69,12 +39,11 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
           disableZoom: true,
           ar: false,
           autoplay: true,
-          'camera-controls': true,
           'auto-rotate': true,
           'rotation-per-second': '18deg',
         })}
         <div className="pointer-events-none absolute start-4 top-4 rounded-full border border-white/20 bg-black/30 px-3 py-1 text-[10px] tracking-[0.18em] text-white/80">
-          أصل من assets
+          {messages.modelMarquee.assetBadge}
         </div>
       </div>
       <figcaption className="space-y-2">
@@ -98,9 +67,9 @@ export function ModelMarquee() {
       />
       <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-2 py-4 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
         <div className="mb-4 px-6 pt-4">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">جدار العرض</p>
+          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.modelMarquee.eyebrow}</p>
           <h2 className="mt-3 max-w-2xl font-serif text-3xl text-[color:var(--foreground)] sm:text-4xl">
-            معاينات فعلية من الأصول المحلية.
+            {messages.modelMarquee.title}
           </h2>
         </div>
         <Marquee pauseOnHover className="[--duration:80s] [--gap:1rem]" repeat={4}>
