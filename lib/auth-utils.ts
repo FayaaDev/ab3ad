@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getRequiredEnv } from '@/lib/env';
 
 const sessionDurationMs = (Number(process.env.AUTH_SESSION_DAYS ?? '30') || 30) * 24 * 60 * 60 * 1000;
 
@@ -7,11 +8,7 @@ export function normalizeEmail(email: string) {
 }
 
 export function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    throw new Error('Missing AUTH_SECRET. Configure authentication before using the app.');
-  }
-  return secret;
+  return getRequiredEnv('AUTH_SECRET', 'Missing AUTH_SECRET. Configure authentication before using the app.');
 }
 
 export function hashPassword(password: string) {

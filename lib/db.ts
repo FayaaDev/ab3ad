@@ -1,14 +1,11 @@
 import { Pool } from 'pg';
+import { getRequiredEnv } from '@/lib/env';
 
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
 function requireDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('Missing DATABASE_URL. Configure PostgreSQL before using the app.');
-  }
-  return databaseUrl;
+  return getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
 }
 
 function createPool() {

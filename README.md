@@ -31,6 +31,8 @@ npm run worker
 npm run dev
 ```
 
+For local development, the app also falls back to the Docker Compose defaults for `DATABASE_URL`, `REDIS_URL`, and `AUTH_SECRET` when they are omitted. Copying `.env.example` is still recommended so the rest of the stack is configured explicitly.
+
 Open http://localhost:3000, create or sign into an account, then upload images.
 
 ## Production readiness notes

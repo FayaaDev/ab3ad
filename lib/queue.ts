@@ -1,17 +1,14 @@
 import type { ConnectionOptions } from 'bullmq';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { getRequiredEnv } from '@/lib/env';
 
 export const generationQueueName = process.env.JOB_QUEUE_NAME ?? 'ab3ad-generation-jobs';
 
 let queue: Queue | null = null;
 
 function getRedisUrl() {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    throw new Error('Missing REDIS_URL. Configure Redis before using the job queue.');
-  }
-  return redisUrl;
+  return getRequiredEnv('REDIS_URL', 'Missing REDIS_URL. Configure Redis before using the job queue.');
 }
 
 export function getQueueConnection(): ConnectionOptions {
