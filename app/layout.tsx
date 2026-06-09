@@ -1,29 +1,56 @@
 import './globals.css';
 import type { ReactNode } from 'react';
+import localFont from 'next/font/local';
+
+import { SiteHeader } from '@/components/site-header';
+
+const thmanyahSans = localFont({
+  src: [
+    {
+      path: '../thmanyahsans/thmanyahsans-Light.woff2',
+      weight: '300',
+      style: 'normal',
+    },
+    {
+      path: '../thmanyahsans/thmanyahsans-Regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../thmanyahsans/thmanyahsans-Medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../thmanyahsans/thmanyahsans-Bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+    {
+      path: '../thmanyahsans/thmanyahsans-Black.woff2',
+      weight: '900',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-thmanyah-sans',
+  display: 'swap',
+});
 
 export const metadata = {
-  title: 'ab3ad · 3D generation service',
-  description: 'Upload images, generate 3D models, and download GLB results.',
+  title: 'أبعاد · توليد نماذج ثلاثية الأبعاد',
+  description: 'ارفع الصور، ولّد نماذج ثلاثية الأبعاد، ثم نزّل ملفات GLB الجاهزة.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <div className="shell">
-          <header className="site-header">
-            <div>
-              <a className="brand" href="/">
-                ab3ad
-              </a>
-              <p className="subtle">Hi3D-backed 3D file generation service</p>
-            </div>
-            <nav>
-              <a href="/">Upload</a>
-              <a href="/admin">Admin</a>
-            </nav>
-          </header>
-          <main>{children}</main>
+    <html dir="rtl" lang="ar">
+      <body className={`${thmanyahSans.variable} min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] antialiased [font-family:var(--font-thmanyah-sans),ui-sans-serif,system-ui,sans-serif]`}>
+        <div className="relative min-h-screen overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,#4a412c_0,rgba(74,65,44,0.18)_12%,transparent_38%),radial-gradient(circle_at_20%_20%,rgba(201,168,106,0.12),transparent_24%),radial-gradient(circle_at_80%_12%,rgba(137,101,54,0.14),transparent_20%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] [background-size:72px_72px] opacity-20" />
+          <div className="pointer-events-none absolute inset-0 noise-overlay opacity-40" />
+          <SiteHeader />
+          <main className="relative mx-auto max-w-7xl px-6 py-10 lg:px-8 lg:py-14">{children}</main>
         </div>
       </body>
     </html>
