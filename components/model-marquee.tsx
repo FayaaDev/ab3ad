@@ -1,7 +1,9 @@
 'use client';
 
 import Script from 'next/script';
-import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { createElement } from 'react';
+
+import { Marquee } from '@/components/ui/marquee';
 
 type PreviewModel = {
   title: string;
@@ -86,115 +88,6 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   );
 }
 
-function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const firstSequenceRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastTimestampRef = useRef<number | null>(null);
-  const pausedRef = useRef(false);
-  const offsetRef = useRef(0);
-  const [sizes, setSizes] = useState({ sequenceWidth: 0, viewportWidth: 0 });
-
-  useEffect(() => {
-    const measure = () => {
-      setSizes({
-        sequenceWidth: firstSequenceRef.current?.offsetWidth ?? 0,
-        viewportWidth: viewportRef.current?.offsetWidth ?? 0,
-      });
-    };
-
-    measure();
-    window.addEventListener('resize', measure);
-
-    return () => {
-      window.removeEventListener('resize', measure);
-    };
-  }, []);
-
-  const duplicateCount = useMemo(() => {
-    if (sizes.sequenceWidth === 0) {
-      return 3;
-    }
-
-    return Math.max(3, Math.ceil((sizes.viewportWidth * 2) / sizes.sequenceWidth) + 1);
-  }, [sizes.sequenceWidth, sizes.viewportWidth]);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track || sizes.sequenceWidth === 0) {
-      return;
-    }
-
-    const pixelsPerSecond = 18;
-
-    const step = (timestamp: number) => {
-      if (lastTimestampRef.current === null) {
-        lastTimestampRef.current = timestamp;
-      }
-
-      const delta = timestamp - lastTimestampRef.current;
-      lastTimestampRef.current = timestamp;
-
-      if (!pausedRef.current) {
-        offsetRef.current -= (pixelsPerSecond * delta) / 1000;
-
-        if (Math.abs(offsetRef.current) >= sizes.sequenceWidth) {
-          offsetRef.current += sizes.sequenceWidth;
-        }
-
-        track.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
-      }
-
-      animationFrameRef.current = window.requestAnimationFrame(step);
-    };
-
-    track.style.transform = 'translate3d(0px, 0, 0)';
-    animationFrameRef.current = window.requestAnimationFrame(step);
-
-    return () => {
-      if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
-      }
-      animationFrameRef.current = null;
-      lastTimestampRef.current = null;
-      offsetRef.current = 0;
-    };
-  }, [sizes.sequenceWidth]);
-
-  const handlePointerEnter = () => {
-    if (pauseOnHover) {
-      pausedRef.current = true;
-    }
-  };
-
-  const handlePointerLeave = () => {
-    pausedRef.current = false;
-  };
-
-  return (
-    <div
-      ref={viewportRef}
-      className="overflow-hidden p-2"
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-    >
-      <div ref={trackRef} className="flex w-max gap-4 will-change-transform" dir="ltr">
-        {Array.from({ length: duplicateCount }, (_, copyIndex) => (
-          <div key={copyIndex} ref={copyIndex === 0 ? firstSequenceRef : undefined} className="flex shrink-0 gap-4">
-            {models.map((model) => (
-              <PreviewCard
-                key={copyIndex === 0 ? model.title : `${model.title}-clone-${copyIndex}`}
-                {...model}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function ModelMarquee() {
   return (
     <>
@@ -210,7 +103,11 @@ export function ModelMarquee() {
             معاينات فعلية من الأصول المحلية.
           </h2>
         </div>
-        <MarqueeTrack />
+        <Marquee pauseOnHover className="[--duration:80s] [--gap:1rem]" repeat={4}>
+          {models.map((model, index) => (
+            <PreviewCard key={`${model.title}-${index}`} {...model} />
+          ))}
+        </Marquee>
         <div className="pointer-events-none absolute inset-y-0 start-0 w-28 bg-gradient-to-l from-[color:var(--background)] to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 end-0 w-28 bg-gradient-to-r from-[color:var(--background)] to-transparent" />
       </div>

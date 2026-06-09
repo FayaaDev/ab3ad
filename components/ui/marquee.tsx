@@ -20,24 +20,36 @@ export function Marquee({
   repeat = 4,
   ...props
 }: MarqueeProps) {
+  const sequence = Array.from({ length: repeat }, (_, index) => (
+    <div
+      key={index}
+      className={cn('flex shrink-0 gap-[var(--gap)]', vertical ? 'flex-col' : 'flex-row')}
+    >
+      {children}
+    </div>
+  ));
+
   return (
     <div
       {...props}
-      className={cn('group flex overflow-hidden p-2 [--duration:36s] [--gap:1rem]', vertical ? 'flex-col gap-[var(--gap)]' : 'flex-row gap-[var(--gap)]', className)}
+      className={cn('group overflow-hidden p-2 [--duration:36s] [--gap:1rem]', className)}
     >
-      {Array.from({ length: repeat }).map((_, index) => (
-        <div
-          key={index}
-          className={cn(
-            'flex shrink-0 justify-around gap-[var(--gap)]',
-            vertical ? 'animate-marquee-vertical flex-col' : 'animate-marquee flex-row',
-            pauseOnHover && 'group-hover:[animation-play-state:paused]',
-            reverse && '[animation-direction:reverse]'
-          )}
-        >
-          {children}
+      <div
+        className={cn(
+          'flex w-max shrink-0 gap-[var(--gap)]',
+          vertical ? 'animate-marquee-vertical flex-col' : 'animate-marquee flex-row',
+          pauseOnHover && 'group-hover:[animation-play-state:paused]',
+          reverse && '[animation-direction:reverse]'
+        )}
+        dir="ltr"
+      >
+        <div className={cn('flex min-w-full shrink-0 gap-[var(--gap)]', vertical ? 'flex-col' : 'flex-row')}>
+          {sequence}
         </div>
-      ))}
+        <div aria-hidden="true" className={cn('flex min-w-full shrink-0 gap-[var(--gap)]', vertical ? 'flex-col' : 'flex-row')}>
+          {sequence}
+        </div>
+      </div>
     </div>
   );
 }
