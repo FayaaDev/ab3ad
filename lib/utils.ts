@@ -1,18 +1,32 @@
-import crypto from 'node:crypto';
-import path from 'node:path';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export function nowIso() {
   return new Date().toISOString();
 }
 
 export function sanitizeFilename(name: string) {
-  const ext = path.extname(name).toLowerCase();
-  const base = path.basename(name, ext).replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'upload';
+  const lastDotIndex = name.lastIndexOf('.');
+  const hasExtension = lastDotIndex > 0;
+  const ext = hasExtension ? name.slice(lastDotIndex).toLowerCase() : '';
+  const base = (hasExtension ? name.slice(0, lastDotIndex) : name)
+    .replace(/[^a-zA-Z0-9-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60) || 'upload';
+
   return `${base}${ext}`;
 }
 
 export async function sha256(input: Buffer) {
-  return crypto.createHash('sha256').update(input).digest('hex');
+  const digest = await crypto.subtle.digest('SHA-256', Uint8Array.from(input));
+  return Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 export async function fileToBuffer(file: File) {

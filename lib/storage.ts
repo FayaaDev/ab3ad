@@ -10,7 +10,15 @@ let client: S3Client | null = null;
 let bucketReady: Promise<void> | null = null;
 
 function getStorageDriver(): StorageDriver {
-  const driver = process.env.STORAGE_DRIVER ?? (process.env.R2_BUCKET ? 'r2' : process.env.S3_BUCKET ? 's3' : 'local');
+  let driver = process.env.STORAGE_DRIVER;
+  if (!driver && (process.env.R2_BUCKET || process.env.R2_ACCOUNT_ID || process.env.R2_ENDPOINT)) {
+    driver = 'r2';
+  }
+  if (!driver && (process.env.S3_BUCKET || process.env.S3_ENDPOINT)) {
+    driver = 's3';
+  }
+  driver ??= 'local';
+
   if (driver === 'local' || driver === 'r2' || driver === 's3') {
     return driver;
   }
@@ -53,8 +61,8 @@ function getObjectStorageConfig() {
     endpoint,
     accessKeyId,
     secretAccessKey,
-    region: process.env.S3_REGION ?? 'auto',
-    forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
+    region: driver === 'r2' ? (process.env.R2_REGION ?? 'auto') : (process.env.S3_REGION ?? 'auto'),
+    forcePathStyle: driver === 'r2' ? process.env.R2_FORCE_PATH_STYLE === 'true' : process.env.S3_FORCE_PATH_STYLE === 'true',
   };
 }
 

@@ -38,4 +38,5 @@ Open http://localhost:3000.
 - The app auto-creates its PostgreSQL tables on first use.
 - `npm run worker` must be running for background submission/poll/download processing.
 - Replace the MinIO/S3 settings with AWS S3 or Cloudflare R2 values in production.
+- For Cloudflare R2, set `STORAGE_DRIVER=r2`, `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`.
 - Multi-view upload validation exists server-side, but the UI still needs explicit per-image front/back/left/right labeling before production release.
