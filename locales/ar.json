@@ -1,24 +1,23 @@
 {
   "meta": {
-    "title": "أبعاد · توليد نماذج ثلاثية الأبعاد",
+    "title": "أبعاد · نماذج ثلاثية الأبعاد لفنانك المفضل",
     "description": "ارفع الصور، ولّد نماذج ثلاثية الأبعاد، ثم نزّل ملفات GLB الجاهزة."
   },
   "siteHeader": {
-    "home": "المعرض",
-    "admin": "الأرشيف",
-    "brandTag": "مشغل النماذج",
-    "tagline": "تحويل الصور إلى نماذج ثلاثية الأبعاد بعناية، للدراسات التصميمية والمفاهيم والقطع القابلة للطباعة.",
+    "admin": "لوحة التحكم",
+    "brandTag": "",
+    "tagline": "ابعاد: المنصة المتخصصة في توليد نماذج عالية الجودة جاهزة للطباعة",
     "logout": "خروج",
     "login": "تسجيل الدخول"
   },
   "home": {
-    "loginPrompt": "سجّل الدخول أولًا حتى تُربط الرفعات والمهام والنتائج بحسابك الحقيقي.",
-    "loginCta": "الذهاب إلى تسجيل الدخول"
+    "loginPrompt": "سجّل الدخول لتتمكن من رفع الصور.",
+    "loginCta": "تسجيل الدخول"
   },
   "loginPage": {
-    "eyebrow": "دخول آمن",
-    "title": "سجّل الدخول قبل معالجة صور Hi3D الحقيقية.",
-    "description": "يحفظ ab3ad الملفات والمهام والنتائج ضمن حسابك فقط، ويقصر الوصول الإداري على المشغلين المصرّح لهم."
+    "eyebrow": "",
+    "title": "سجّل الدخول قبل معالجة صورتك .",
+    "description": ""
   },
   "authPanel": {
     "loginTab": "تسجيل الدخول",
@@ -31,38 +30,33 @@
     "registerSubmit": "أنشئ الحساب"
   },
   "modelMarquee": {
-    "eyebrow": "جدار العرض",
-    "title": "معاينات فعلية من الأصول المحلية.",
-    "assetBadge": "أصل من assets",
+    "eyebrow": "أختر على الصورة لأيقاف الشريط المتحرك",
+    "title": "بعض اعمالنا",
+    "assetBadge": "جاهزة للطباعة",
     "models": [
       {
-        "title": "عبدو",
-        "caption": "نموذج واقعي من الأصول المحلية",
-        "finish": "GLB جاهز",
+        "title": "محمد عبدة",
+        "caption": "فنان العرب",
         "src": "/api/assets/samples/Abdo-Hitem3d.glb"
       },
       {
         "title": "أليسا",
-        "caption": "معاينة تفاعلية داخل جدار العرض",
-        "finish": "ملف أصلي",
+        "caption": "مكلة الاحساس",
         "src": "/api/assets/samples/Alisa.glb"
       },
       {
-        "title": "دابريني",
-        "caption": "عرض مباشر بدل البطاقات الوهمية",
-        "finish": "تفاصيل كاملة",
+        "title": "دبرني",
+        "caption": "ملك الميمز",
         "src": "/api/assets/samples/dabbrini.glb"
       },
       {
-        "title": "ساجر",
-        "caption": "دوران تلقائي لإبراز المجسم",
-        "finish": "جاهز للاستعراض",
+        "title": "رابح صقر",
+        "caption": "موسيقار الخليج",
         "src": "/api/assets/samples/Sager-Hitem3d.glb"
       },
       {
-        "title": "طلال",
-        "caption": "يُحمّل من مجلد assets مباشرة",
-        "finish": "أصل محلي",
+        "title": "طلال مداح",
+        "caption": "صوت الارض",
         "src": "/api/assets/samples/Talal-Hitem3d.glb"
       }
     ]
@@ -70,8 +64,8 @@
   "uploadForm": {
     "unnamedFile": "ملف بدون اسم",
     "genericFile": "الملف",
-    "title": "استوديو الإرسال",
-    "mockModeNote": "وضع المحاكاة مفعّل افتراضيًا أثناء التطوير المحلي",
+    "title": "",
+    "mockModeNote": "",
     "dropHereOr": "أسقط الصور هنا أو %{browse}",
     "browse": "تصفح الملفات",
     "dropzoneNote": "PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف",
