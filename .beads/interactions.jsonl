@@ -33,3 +33,4 @@
 {"id":"int-7c2cdcfd","kind":"field_change","created_at":"2026-06-09T14:52:15.690474Z","actor":"FayaaDev","issue_id":"ab3ad-sfn","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-009edfa6","kind":"field_change","created_at":"2026-06-09T15:01:01.705018Z","actor":"FayaaDev","issue_id":"ab3ad-bxx","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-d3a91b59","kind":"field_change","created_at":"2026-06-09T15:36:38.272251Z","actor":"FayaaDev","issue_id":"ab3ad-7fb","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-e95ebe91","kind":"field_change","created_at":"2026-06-09T17:03:23.621083Z","actor":"FayaaDev","issue_id":"ab3ad-iyf","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
