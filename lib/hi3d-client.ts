@@ -72,7 +72,7 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
 
   for (const [index, asset] of assets.entries()) {
     const buffer = await readStorageObject(asset.storageKey);
-    const blob = new Blob([buffer], { type: asset.mimeType });
+    const blob = new Blob([new Uint8Array(buffer)], { type: asset.mimeType });
     const filename = path.basename(asset.originalFilename);
     if (job.mode === 'single_image') {
       form.append('images', blob, filename);

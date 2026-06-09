@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "worker": "tsx scripts/worker.ts",
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
-    "seed": "node scripts/seed-demo-user.mjs"
+    "seed": "tsx scripts/seed-demo-user.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1064.0",
     "@uppy/core": "^4.4.1",
     "@uppy/dashboard": "^4.3.2",
     "@uppy/drag-drop": "^4.1.0",
@@ -18,7 +20,10 @@
     "@uppy/progress-bar": "^4.1.0",
     "@uppy/react": "^4.3.2",
     "@uppy/xhr-upload": "^4.1.1",
+    "bullmq": "^5.78.0",
+    "ioredis": "^5.11.1",
     "next": "15.5.19",
+    "pg": "^8.21.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "uuid": "^11.1.0",
@@ -26,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "tsx": "^4.19.4",

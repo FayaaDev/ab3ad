@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getGenerationJob } from '@/lib/store';
-import { kickoffJobProcessing } from '@/lib/job-runner';
+import { enqueueJobProcessing } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 
@@ -33,7 +33,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ jobId: st
   });
 
   await addJobEvent({ jobId: retryJob.id, eventType: 'job_retried', payload: { retriedFrom: job.id } });
-  kickoffJobProcessing(retryJob.id);
+  await enqueueJobProcessing(retryJob.id);
 
   return NextResponse.json({ jobId: retryJob.id, status: retryJob.status });
 }

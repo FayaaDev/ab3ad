@@ -1,5 +1,7 @@
 import { listGenerationJobs } from '@/lib/store';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const jobs = await listGenerationJobs();
 
@@ -10,7 +12,7 @@ export default async function AdminPage() {
         <h1>Recent jobs</h1>
       </div>
 
-      <div className="card">
+      <div className="card table-scroll">
         <table className="jobs-table">
           <thead>
             <tr>
@@ -26,12 +28,12 @@ export default async function AdminPage() {
               jobs.map((job) => (
                 <tr key={job.id}>
                   <td>
-                    <a href={`/jobs/${job.id}`}>{job.id.slice(0, 8)}</a>
+                    <a className="job-id" href={`/jobs/${job.id}`}>{job.id.slice(0, 8)}</a>
                   </td>
                   <td>{job.status}</td>
-                  <td>{job.userId}</td>
+                  <td className="job-meta">{job.userId}</td>
                   <td>{job.outputFormat}</td>
-                  <td>{new Date(job.createdAt).toLocaleString()}</td>
+                  <td className="job-time">{new Date(job.createdAt).toLocaleString()}</td>
                 </tr>
               ))
             ) : (

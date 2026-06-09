@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       assertValidUpload(file, buffer);
       const safeName = sanitizeFilename(file.name);
       const storageKey = path.join('uploads', user.id, `${uuid()}-${safeName}`);
-      await saveStorageObject(storageKey, buffer);
+      await saveStorageObject(storageKey, buffer, file.type || 'application/octet-stream');
       const asset = await createFileAsset({
         userId: user.id,
         storageKey,

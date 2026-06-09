@@ -4,9 +4,10 @@
 - `ab3ad` is a Next.js MVP for generating 3D models from uploaded images.
 - Frontend: upload page, job status page, admin page.
 - Backend: App Router API routes under `app/api/**`.
-- Current persistence is local-only:
-  - JSON DB: `data/db.json`
-  - File storage: `data/storage/uploads` and `data/storage/results`
+- Persistence uses the production-style stack:
+  - PostgreSQL for users/assets/jobs/events/billing
+  - Redis + BullMQ for background job execution
+  - S3-compatible object storage for uploads and results
 - Hi3D integration lives in `lib/hi3d-client.ts`.
 - Job orchestration lives in `lib/job-runner.ts`.
 - Validation lives in `lib/validation.ts`.
@@ -38,8 +39,8 @@ bd close <id>
 - `app/api/uploads/route.ts` — file uploads
 - `app/api/generations/**` — create/status/download/retry
 - `app/api/hi3d/callback/route.ts` — Hi3D callback
-- `lib/store.ts` — JSON persistence helpers
-- `lib/storage.ts` — filesystem storage helpers
+- `lib/store.ts` — PostgreSQL persistence helpers
+- `lib/storage.ts` — S3/R2 storage helpers
 - `tests/validation.test.ts` — core tests
 - `plan.md` — product and architecture plan
 
@@ -51,7 +52,7 @@ bd close <id>
 - Local run: `npm run dev`
 
 ## Known Follow-ups
-- Replace local JSON/filesystem layers with Postgres + Redis/BullMQ + S3/R2.
+- Add signed upload URLs if direct-to-bucket uploads are needed later.
 - Add real authentication.
 - Add explicit multi-view role labeling in the UI.
 

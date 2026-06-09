@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getFileAssets } from '@/lib/store';
-import { kickoffJobProcessing } from '@/lib/job-runner';
+import { enqueueJobProcessing } from '@/lib/queue';
 import { generationSchema, qualityToResolution, validateAssetsForMode } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     });
 
     await addJobEvent({ jobId: job.id, eventType: 'job_queued', payload });
-    kickoffJobProcessing(job.id);
+    await enqueueJobProcessing(job.id);
 
     return NextResponse.json({ jobId: job.id, status: job.status });
   } catch (error) {

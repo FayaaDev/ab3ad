@@ -13,8 +13,9 @@ Initial implementation of the `plan.md` 3D file generation service.
 - `POST /api/generations/:jobId/retry`
 - `POST /api/hi3d/callback`
 - Dedicated `lib/hi3d-client.ts`
-- Persistent local file storage under `data/storage`
-- Local JSON persistence for users, assets, jobs, and events
+- PostgreSQL persistence for users, assets, jobs, events, and billing entries
+- Redis + BullMQ queueing for generation work
+- S3-compatible object storage for uploads and generated results
 - Mock Hi3D mode for local development
 
 ## Run locally
@@ -22,6 +23,9 @@ Initial implementation of the `plan.md` 3D file generation service.
 ```bash
 cp .env.example .env.local
 npm install
+docker compose up -d
+npm run seed
+npm run worker
 npm run dev
 ```
 
@@ -30,6 +34,8 @@ Open http://localhost:3000.
 ## Notes
 
 - `HI3D_MODE=mock` lets the full flow run without real Hi3D credentials.
-- The current implementation uses local JSON + filesystem persistence so the MVP can run in an empty repo without external services.
-- Swap the storage/repository layers for PostgreSQL, Redis/BullMQ, and S3/R2 when moving from local MVP to production.
+- Local infrastructure uses PostgreSQL + Redis + MinIO so development matches production architecture.
+- The app auto-creates its PostgreSQL tables on first use.
+- `npm run worker` must be running for background submission/poll/download processing.
+- Replace the MinIO/S3 settings with AWS S3 or Cloudflare R2 values in production.
 - Multi-view upload validation exists server-side, but the UI still needs explicit per-image front/back/left/right labeling before production release.
