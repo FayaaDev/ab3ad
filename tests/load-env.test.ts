@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { loadLocalEnv } from '../scripts/load-env';
+
+const envKeys = ['DATABASE_URL', 'REDIS_URL'] as const;
+
+function snapshotEnv() {
+  return Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+}
+
+function restoreEnv(snapshot: Record<string, string | undefined>) {
+  for (const key of envKeys) {
+    if (snapshot[key] === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = snapshot[key];
+    }
+  }
+}
+
+test('loadLocalEnv fills empty shell variables from env files', async () => {
+  const env = snapshotEnv();
+  const cwd = process.cwd();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-load-env-'));
+
+  try {
+    await fs.writeFile(path.join(tempDir, '.env'), 'DATABASE_URL=postgres://from-dot-env\nREDIS_URL=redis://from-dot-env\n');
+    process.chdir(tempDir);
+    process.env.DATABASE_URL = '';
+    process.env.REDIS_URL = '';
+
+    loadLocalEnv();
+
+    assert.equal(process.env.DATABASE_URL, 'postgres://from-dot-env');
+    assert.equal(process.env.REDIS_URL, 'redis://from-dot-env');
+  } finally {
+    process.chdir(cwd);
+    restoreEnv(env);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('loadLocalEnv keeps non-empty shell variables', async () => {
+  const env = snapshotEnv();
+  const cwd = process.cwd();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-load-env-'));
+
+  try {
+    await fs.writeFile(path.join(tempDir, '.env'), 'DATABASE_URL=postgres://from-dot-env\n');
+    process.chdir(tempDir);
+    process.env.DATABASE_URL = 'postgres://from-shell';
+    delete process.env.REDIS_URL;
+
+    loadLocalEnv();
+
+    assert.equal(process.env.DATABASE_URL, 'postgres://from-shell');
+  } finally {
+    process.chdir(cwd);
+    restoreEnv(env);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});

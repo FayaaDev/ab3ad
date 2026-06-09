@@ -20,7 +20,7 @@ export function loadLocalEnv() {
       }
       const key = trimmed.slice(0, separatorIndex).trim();
       const value = trimmed.slice(separatorIndex + 1).trim();
-      if (!(key in process.env)) {
+      if (!process.env[key]) {
         process.env[key] = value;
       }
     }
