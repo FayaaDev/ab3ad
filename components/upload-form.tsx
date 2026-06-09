@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import '@uppy/core/dist/style.min.css';
 import '@uppy/drag-drop/dist/style.min.css';
 
+import { InlineGenerationProgress } from '@/components/inline-generation-progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,8 @@ export function UploadForm() {
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [isJobTerminal, setIsJobTerminal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const uppy = useMemo(() => {
@@ -62,11 +65,19 @@ export function UploadForm() {
 
     instance.on('file-added', () => {
       setError(null);
+      setActiveJobId(null);
+      setIsJobTerminal(false);
       setUploadedAssets([]);
       syncSelectedFiles();
     });
-    instance.on('file-removed', syncSelectedFiles);
+    instance.on('file-removed', () => {
+      setActiveJobId(null);
+      setIsJobTerminal(false);
+      syncSelectedFiles();
+    });
     instance.on('cancel-all', () => {
+      setActiveJobId(null);
+      setIsJobTerminal(false);
       setUploadedAssets([]);
       syncSelectedFiles();
     });
@@ -143,7 +154,8 @@ export function UploadForm() {
         throw new Error(generationBody.error || 'فشل طلب التوليد.');
       }
 
-      window.location.href = `/jobs/${generationBody.jobId}`;
+      setActiveJobId(generationBody.jobId);
+      setIsJobTerminal(false);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'تعذر بدء التوليد.');
     } finally {
@@ -165,8 +177,8 @@ export function UploadForm() {
             height="260px"
             locale={{
               strings: {
-                dropHereOr: 'أسقط الصور هنا أو %{browse}',
-                browse: 'تصفح الملفات',
+                dropHereOr: '%{browse} من جهازك',
+                browse: 'اختر الصور',
               },
             }}
             note="PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف"
@@ -179,6 +191,7 @@ export function UploadForm() {
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
               <select
                 className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
+                disabled={Boolean(activeJobId && !isJobTerminal)}
                 value={mode}
                 onChange={(event) => setMode(event.target.value as Mode)}
               >
@@ -197,6 +210,7 @@ export function UploadForm() {
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
               <select
                 className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
+                disabled={Boolean(activeJobId && !isJobTerminal)}
                 value={quality}
                 onChange={(event) => setQuality(event.target.value as Quality)}
               >
@@ -236,14 +250,16 @@ export function UploadForm() {
         {error ? <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p> : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button disabled={isSubmitting} onClick={uploadThenGenerate} size="lg" type="button">
-            {isSubmitting ? 'جارٍ الرفع…' : 'ولّد النموذج ثلاثي الأبعاد'}
+          <Button disabled={isSubmitting || Boolean(activeJobId && !isJobTerminal)} onClick={uploadThenGenerate} size="lg" type="button">
+            {isSubmitting ? 'جارٍ الرفع…' : activeJobId && !isJobTerminal ? 'جارٍ توليد النموذج…' : 'ولّد النموذج ثلاثي الأبعاد'}
             <ArrowLeft className="size-4" />
           </Button>
           <p className="text-xs text-[color:var(--muted)]">
             {mode === 'single_image' ? 'بحد أقصى صورة واحدة' : 'حتى 4 صور'}
           </p>
         </div>
+
+        {activeJobId ? <InlineGenerationProgress jobId={activeJobId} onTerminalStateChange={setIsJobTerminal} /> : null}
       </div>
     </div>
   );
