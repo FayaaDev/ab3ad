@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { messages } from '@/lib/messages';
 
 type Mode = 'login' | 'register';
 
@@ -44,35 +45,35 @@ export function AuthPanel() {
     <div className="mx-auto max-w-xl rounded-[2.4rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.24)] sm:p-8">
       <div className="flex gap-2 rounded-full border border-white/10 bg-black/20 p-1 text-sm">
         <button className={`flex-1 rounded-full px-4 py-2 ${mode === 'login' ? 'bg-white/10 text-white' : 'text-[color:var(--muted)]'}`} onClick={() => setMode('login')} type="button">
-          تسجيل الدخول
+          {messages.authPanel.loginTab}
         </button>
         <button className={`flex-1 rounded-full px-4 py-2 ${mode === 'register' ? 'bg-white/10 text-white' : 'text-[color:var(--muted)]'}`} onClick={() => setMode('register')} type="button">
-          إنشاء حساب
+          {messages.authPanel.registerTab}
         </button>
       </div>
 
       <div className="mt-6 space-y-4">
         {mode === 'register' ? (
           <label className="block space-y-2">
-            <span className="text-sm text-[color:var(--muted)]">الاسم</span>
+            <span className="text-sm text-[color:var(--muted)]">{messages.authPanel.name}</span>
             <input className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 outline-none" onChange={(event) => setName(event.target.value)} value={name} />
           </label>
         ) : null}
 
         <label className="block space-y-2">
-          <span className="text-sm text-[color:var(--muted)]">البريد الإلكتروني</span>
+          <span className="text-sm text-[color:var(--muted)]">{messages.authPanel.email}</span>
           <input className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 outline-none" onChange={(event) => setEmail(event.target.value)} type="email" value={email} />
         </label>
 
         <label className="block space-y-2">
-          <span className="text-sm text-[color:var(--muted)]">كلمة المرور</span>
+          <span className="text-sm text-[color:var(--muted)]">{messages.authPanel.password}</span>
           <input className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 outline-none" onChange={(event) => setPassword(event.target.value)} type="password" value={password} />
         </label>
 
         {error ? <p className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{error}</p> : null}
 
         <Button className="w-full" disabled={loading} onClick={submit} size="lg" type="button">
-          {loading ? 'جارٍ المتابعة…' : mode === 'login' ? 'ادخل إلى حسابك' : 'أنشئ الحساب'}
+          {loading ? messages.authPanel.loading : mode === 'login' ? messages.authPanel.loginSubmit : messages.authPanel.registerSubmit}
         </Button>
       </div>
     </div>

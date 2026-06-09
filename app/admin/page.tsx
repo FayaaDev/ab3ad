@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AdminAuthError, AuthError, requireAdminUser } from '@/lib/auth';
 import { formatDateTime, formatStatusLabel } from '@/lib/locale';
+import { messages } from '@/lib/messages';
 import { listGenerationJobs } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export default async function AdminPage() {
       redirect('/login' as never);
     }
     if (error instanceof AdminAuthError) {
-      return <p className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">هذه الصفحة مخصّصة لمشغلي المنصة فقط.</p>;
+      return <p className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{messages.adminPage.adminOnly}</p>;
     }
     throw error;
   }
@@ -27,19 +28,19 @@ export default async function AdminPage() {
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
         <div className="rounded-[2.5rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.26)]">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">أرشيف الإدارة</p>
-          <h1 className="mt-4 font-serif text-5xl text-[color:var(--foreground)] sm:text-6xl">أحدث المهام، بصيغة أقرب إلى الفهرس من الجدول الجاف.</h1>
+          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.adminPage.eyebrow}</p>
+          <h1 className="mt-4 font-serif text-5xl text-[color:var(--foreground)] sm:text-6xl">{messages.adminPage.title}</h1>
           <p className="mt-4 max-w-2xl text-sm leading-8 text-[color:var(--muted-strong)] sm:text-base">
-            راجع المهام النشطة، والنتائج المكتملة، والمحاولات الفاشلة من شاشة أرشيف واحدة مع الحفاظ على الوصول المباشر لكل سجل توليد.
+            {messages.adminPage.description}
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
           {[
-            { label: 'إجمالي المهام', value: jobs.length },
-            { label: 'النشطة', value: activeJobs },
-            { label: 'المكتملة', value: completedJobs },
-            { label: 'تحتاج متابعة', value: failedJobs },
+            { label: messages.adminPage.totalJobs, value: jobs.length },
+            { label: messages.adminPage.activeJobs, value: activeJobs },
+            { label: messages.adminPage.completedJobs, value: completedJobs },
+            { label: messages.adminPage.needsAttention, value: failedJobs },
           ].map((stat) => (
             <div key={stat.label} className="rounded-[1.8rem] border border-[color:var(--line)] bg-white/5 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
               <p className="text-[10px] tracking-[0.14em] text-[color:var(--muted)]">{stat.label}</p>
@@ -51,18 +52,18 @@ export default async function AdminPage() {
 
       <section className="overflow-hidden rounded-[2.4rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_30px_100px_rgba(0,0,0,0.26)]">
         <div className="border-b border-white/10 px-6 py-5">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">سجل المهام</p>
+          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.adminPage.tableTitle}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="text-start text-[11px] tracking-[0.14em] text-[color:var(--muted)]">
-                <th className="px-6 py-4 font-medium">المهمة</th>
-                <th className="px-6 py-4 font-medium">الحالة</th>
-                <th className="px-6 py-4 font-medium">المستخدم</th>
-                <th className="px-6 py-4 font-medium">الصيغة</th>
-                <th className="px-6 py-4 font-medium">تشخيص</th>
-                <th className="px-6 py-4 font-medium">آخر تحديث</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.job}</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.status}</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.user}</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.format}</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.diagnostics}</th>
+                <th className="px-6 py-4 font-medium">{messages.adminPage.columns.updatedAt}</th>
               </tr>
             </thead>
             <tbody>
@@ -88,7 +89,7 @@ export default async function AdminPage() {
                       ) : job.hi3dTaskId ? (
                         <span className="text-[color:var(--accent)]">{job.hi3dTaskId}</span>
                       ) : (
-                        'لا يوجد'
+                        messages.adminPage.none
                       )}
                     </td>
                     <td className="job-time px-6 py-5 text-[color:var(--muted-strong)]">{formatDateTime(job.updatedAt)}</td>
@@ -97,7 +98,7 @@ export default async function AdminPage() {
               ) : (
                 <tr>
                   <td className="px-6 py-8 text-[color:var(--muted)]" colSpan={6}>
-                    لا توجد مهام بعد.
+                    {messages.adminPage.empty}
                   </td>
                 </tr>
               )}

@@ -1,0 +1,238 @@
+{
+  "meta": {
+    "title": "أبعاد · توليد نماذج ثلاثية الأبعاد",
+    "description": "ارفع الصور، ولّد نماذج ثلاثية الأبعاد، ثم نزّل ملفات GLB الجاهزة."
+  },
+  "siteHeader": {
+    "home": "المعرض",
+    "admin": "الأرشيف",
+    "brandTag": "مشغل النماذج",
+    "tagline": "تحويل الصور إلى نماذج ثلاثية الأبعاد بعناية، للدراسات التصميمية والمفاهيم والقطع القابلة للطباعة.",
+    "logout": "خروج",
+    "login": "تسجيل الدخول"
+  },
+  "home": {
+    "loginPrompt": "سجّل الدخول أولًا حتى تُربط الرفعات والمهام والنتائج بحسابك الحقيقي.",
+    "loginCta": "الذهاب إلى تسجيل الدخول"
+  },
+  "loginPage": {
+    "eyebrow": "دخول آمن",
+    "title": "سجّل الدخول قبل معالجة صور Hi3D الحقيقية.",
+    "description": "يحفظ ab3ad الملفات والمهام والنتائج ضمن حسابك فقط، ويقصر الوصول الإداري على المشغلين المصرّح لهم."
+  },
+  "authPanel": {
+    "loginTab": "تسجيل الدخول",
+    "registerTab": "إنشاء حساب",
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "loading": "جارٍ المتابعة…",
+    "loginSubmit": "ادخل إلى حسابك",
+    "registerSubmit": "أنشئ الحساب"
+  },
+  "modelMarquee": {
+    "eyebrow": "جدار العرض",
+    "title": "معاينات فعلية من الأصول المحلية.",
+    "assetBadge": "أصل من assets",
+    "models": [
+      {
+        "title": "عبدو",
+        "caption": "نموذج واقعي من الأصول المحلية",
+        "finish": "GLB جاهز",
+        "src": "/api/assets/samples/Abdo-Hitem3d.glb"
+      },
+      {
+        "title": "أليسا",
+        "caption": "معاينة تفاعلية داخل جدار العرض",
+        "finish": "ملف أصلي",
+        "src": "/api/assets/samples/Alisa.glb"
+      },
+      {
+        "title": "دابريني",
+        "caption": "عرض مباشر بدل البطاقات الوهمية",
+        "finish": "تفاصيل كاملة",
+        "src": "/api/assets/samples/dabbrini.glb"
+      },
+      {
+        "title": "ساجر",
+        "caption": "دوران تلقائي لإبراز المجسم",
+        "finish": "جاهز للاستعراض",
+        "src": "/api/assets/samples/Sager-Hitem3d.glb"
+      },
+      {
+        "title": "طلال",
+        "caption": "يُحمّل من مجلد assets مباشرة",
+        "finish": "أصل محلي",
+        "src": "/api/assets/samples/Talal-Hitem3d.glb"
+      }
+    ]
+  },
+  "uploadForm": {
+    "unnamedFile": "ملف بدون اسم",
+    "genericFile": "الملف",
+    "title": "استوديو الإرسال",
+    "mockModeNote": "وضع المحاكاة مفعّل افتراضيًا أثناء التطوير المحلي",
+    "dropHereOr": "أسقط الصور هنا أو %{browse}",
+    "browse": "تصفح الملفات",
+    "dropzoneNote": "PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف",
+    "mode": "الوضع",
+    "modeSingle": "صورة واحدة إلى نموذج ثلاثي الأبعاد",
+    "modeMulti": "عدة زوايا إلى نموذج ثلاثي الأبعاد",
+    "quality": "الجودة",
+    "qualityFast": "سريع",
+    "qualityHigh": "عالية",
+    "multiViewWarning": "في النسخة الحالية يتم رفع المجموعة دفعة واحدة. ما زلنا بحاجة إلى إضافة تسميات صريحة للأمام والخلف واليمين واليسار قبل الاستخدام الإنتاجي.",
+    "selectedFiles": "الملفات المحددة",
+    "uploadSuccessSingular": "تم رفع ملف بنجاح.",
+    "uploadSuccessPlural": "تم رفع %{count} ملفات بنجاح.",
+    "submitting": "جارٍ الرفع…",
+    "generating": "جارٍ توليد النموذج…",
+    "submit": "ولّد النموذج ثلاثي الأبعاد",
+    "singleLimit": "بحد أقصى صورة واحدة",
+    "multiLimit": "حتى 4 صور",
+    "errors": {
+      "uploadFileFailed": "فشل رفع الملف %{fileName}",
+      "addImage": "أضف صورة واحدة على الأقل.",
+      "missingUploadResult": "لم تُرجع عملية الرفع نتيجة.",
+      "uploadFailed": "فشل الرفع.",
+      "missingAssetIds": "اكتمل الرفع، لكن لم يتم إرجاع معرّفات الملفات.",
+      "generationRequestFailed": "فشل طلب التوليد.",
+      "generationStartFailed": "تعذر بدء التوليد."
+    }
+  },
+  "inlineGenerationProgress": {
+    "eyebrow": "تقدّم التوليد",
+    "loading": "جارٍ بدء التوليد...",
+    "waiting": "في الانتظار",
+    "failedDescription": "توقفت المهمة قبل اكتمال النتيجة. يمكنك تعديل الرفع أو المحاولة مرة أخرى من صفحة البداية.",
+    "activeDescription": "يتم تحديث التقدّم تلقائيًا حتى يصبح ملف النموذج جاهزًا للتنزيل.",
+    "download": "تنزيل ملف GLB",
+    "loadError": "تعذر تحميل حالة التوليد.",
+    "steps": [
+      {
+        "label": "تم الاستلام",
+        "percent": 10,
+        "statuses": ["queued"]
+      },
+      {
+        "label": "تم الإرسال",
+        "percent": 25,
+        "statuses": ["submitted_to_hi3d"]
+      },
+      {
+        "label": "في الطابور",
+        "percent": 45,
+        "statuses": ["hi3d_created", "hi3d_queueing"]
+      },
+      {
+        "label": "قيد المعالجة",
+        "percent": 70,
+        "statuses": ["hi3d_processing"]
+      },
+      {
+        "label": "جارٍ تجهيز الملف",
+        "percent": 90,
+        "statuses": ["downloading_result"]
+      },
+      {
+        "label": "جاهز للتنزيل",
+        "percent": 100,
+        "statuses": ["completed"]
+      }
+    ]
+  },
+  "jobPage": {
+    "eyebrow": "تقدّم المهمة",
+    "title": "تابع سجل التوليد لحظة بلحظة.",
+    "description": "نعرض الإرسال، ومعالجة Hi3D، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.",
+    "reference": "مرجع",
+    "jobId": "معرّف المهمة",
+    "expectedOutput": "المخرجات المتوقعة",
+    "expectedOutputDescription": "ملف نتيجة محفوظ، وسجل أحداث، ومسار للاستعادة عند الفشل، وملف GLB قابل للتنزيل عند الجاهزية."
+  },
+  "jobStatus": {
+    "loadError": "تعذر تحميل المهمة.",
+    "retryFailed": "فشلت إعادة المحاولة.",
+    "loading": "جارٍ تحميل المهمة…",
+    "jobLabel": "المهمة",
+    "currentStatus": "الحالة الحالية",
+    "title": "نموذجك يتحرك الآن عبر خط الإنتاج.",
+    "description": "تابع الطابور، وتقدّم التوليد، وتخزين النتيجة من مكان واحد. تبقى المهام المكتملة متاحة عبر التخزين الدائم.",
+    "createdAt": "تاريخ الإنشاء",
+    "completedAt": "تاريخ الاكتمال",
+    "inProgress": "قيد التنفيذ",
+    "timelineEvents": "أحداث المخطط الزمني",
+    "recordedPoints": "%{count} نقطة مسجلة",
+    "download": "تنزيل ملف GLB",
+    "retry": "إعادة المحاولة",
+    "newModel": "ابدأ نموذجًا جديدًا",
+    "coverAlt": "غلاف النموذج الناتج",
+    "previewPending": "المعاينة قيد الانتظار",
+    "previewPendingDescription": "ستظهر صورة الغلاف هنا بمجرد أن يحفظ خط المعالجة صورة مع النتيجة النهائية.",
+    "processingTrack": "خط المعالجة",
+    "processingTrackDone": "تم الوصول إلى الحالة النهائية",
+    "processingTrackActive": "يستمر التحديث حتى الاكتمال",
+    "resultStorage": "تخزين النتيجة",
+    "resultStorageReady": "الملف متاح للتنزيل",
+    "resultStoragePending": "بانتظار حفظ الملف النهائي",
+    "recovery": "الاستعادة",
+    "recoveryReady": "إعادة المحاولة متاحة",
+    "recoveryIdle": "لا حاجة إلى تدخل يدوي",
+    "timeline": "المخطط الزمني",
+    "eventLog": "سجل الأحداث",
+    "station": "المحطة"
+  },
+  "adminPage": {
+    "adminOnly": "هذه الصفحة مخصّصة لمشغلي المنصة فقط.",
+    "eyebrow": "أرشيف الإدارة",
+    "title": "أحدث المهام، بصيغة أقرب إلى الفهرس من الجدول الجاف.",
+    "description": "راجع المهام النشطة، والنتائج المكتملة، والمحاولات الفاشلة من شاشة أرشيف واحدة مع الحفاظ على الوصول المباشر لكل سجل توليد.",
+    "totalJobs": "إجمالي المهام",
+    "activeJobs": "النشطة",
+    "completedJobs": "المكتملة",
+    "needsAttention": "تحتاج متابعة",
+    "tableTitle": "سجل المهام",
+    "columns": {
+      "job": "المهمة",
+      "status": "الحالة",
+      "user": "المستخدم",
+      "format": "الصيغة",
+      "diagnostics": "تشخيص",
+      "updatedAt": "آخر تحديث"
+    },
+    "none": "لا يوجد",
+    "empty": "لا توجد مهام بعد."
+  },
+  "statusLabels": {
+    "queued": "في الانتظار",
+    "submitted_to_hi3d": "تم الإرسال إلى Hi3D",
+    "hi3d_created": "تم إنشاء المهمة",
+    "hi3d_queueing": "في طابور Hi3D",
+    "hi3d_processing": "قيد المعالجة",
+    "downloading_result": "جارِ تنزيل النتيجة",
+    "completed": "مكتمل",
+    "failed": "فشل",
+    "result_download_failed": "فشل تنزيل النتيجة",
+    "cancelled": "أُلغي",
+    "expired": "منتهي"
+  },
+  "eventLabels": {
+    "job_queued": "أُضيفت المهمة إلى الطابور",
+    "submit_started": "بدأ تجهيز الإرسال",
+    "submitted_to_hi3d": "تم الإرسال إلى Hi3D",
+    "hi3d_created": "أنشأ Hi3D المهمة",
+    "hi3d_queueing": "المهمة في طابور Hi3D",
+    "hi3d_processing": "Hi3D يعالج النموذج",
+    "hi3d_success": "أعاد Hi3D النتيجة",
+    "job_failed": "فشلت المهمة",
+    "download_started": "بدأ تنزيل النتيجة",
+    "download_failed": "فشل تنزيل النتيجة",
+    "job_completed": "اكتمل التوليد",
+    "callback_created": "وصل إشعار إنشاء المهمة",
+    "callback_queueing": "وصل إشعار وضع المهمة في الطابور",
+    "callback_processing": "وصل إشعار بدء المعالجة",
+    "callback_success": "وصل إشعار نجاح المعالجة",
+    "callback_failed": "وصل إشعار فشل المعالجة",
+    "job_retried": "أُعيدت محاولة المهمة"
+  }
+}

@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowRight, Download, Layers3, RefreshCcw, Sparkles } fr
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDateTime, formatEventLabel, formatStatusLabel, formatTime } from '@/lib/locale';
+import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
 type JobPayload = {
@@ -35,7 +36,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
         return;
       }
       if (!response.ok) {
-        throw new Error(body.error || 'تعذر تحميل المهمة.');
+        throw new Error(body.error || messages.jobStatus.loadError);
       }
       if (!cancelled) {
         setData(body);
@@ -47,7 +48,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
 
     load().catch((loadError) => {
       if (!cancelled) {
-        setError(loadError instanceof Error ? loadError.message : 'تعذر تحميل المهمة.');
+        setError(loadError instanceof Error ? loadError.message : messages.jobStatus.loadError);
       }
     });
 
@@ -66,7 +67,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
       return;
     }
     if (!response.ok || !body.jobId) {
-      setError(body.error || 'فشلت إعادة المحاولة.');
+      setError(body.error || messages.jobStatus.retryFailed);
       return;
     }
     window.location.href = `/jobs/${body.jobId}`;
@@ -90,7 +91,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
     return <p className="rounded-[1.5rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p>;
   }
   if (!data) {
-    return <p className="text-sm tracking-[0.14em] text-[color:var(--muted)]">جارٍ تحميل المهمة…</p>;
+    return <p className="text-sm tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.loading}</p>;
   }
 
   return (
@@ -101,29 +102,29 @@ export function JobStatus({ jobId }: { jobId: string }) {
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-3">
                 <span className={cn('rounded-full border px-4 py-2 text-xs tracking-[0.14em]', statusTone(data.job.status))}>{formatStatusLabel(data.job.status)}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--muted)]">المهمة {jobId.slice(0, 8)}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.jobLabel} {jobId.slice(0, 8)}</span>
               </div>
 
               <div className="space-y-3">
-                <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">الحالة الحالية</p>
-                <h2 className="font-serif text-4xl text-[color:var(--foreground)] sm:text-5xl">نموذجك يتحرك الآن عبر خط الإنتاج.</h2>
+                <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.jobStatus.currentStatus}</p>
+                <h2 className="font-serif text-4xl text-[color:var(--foreground)] sm:text-5xl">{messages.jobStatus.title}</h2>
                 <p className="max-w-2xl text-sm leading-7 text-[color:var(--muted)]">
-                  تابع الطابور، وتقدّم التوليد، وتخزين النتيجة من مكان واحد. تبقى المهام المكتملة متاحة عبر التخزين الدائم.
+                  {messages.jobStatus.description}
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">تاريخ الإنشاء</p>
+                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.createdAt}</p>
                   <p className="job-time mt-3 text-sm leading-6 text-[color:var(--foreground)]">{formatDateTime(data.job.createdAt)}</p>
                 </div>
                 <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">تاريخ الاكتمال</p>
-                  <p className="job-time mt-3 text-sm leading-6 text-[color:var(--foreground)]">{data.job.completedAt ? formatDateTime(data.job.completedAt) : 'قيد التنفيذ'}</p>
+                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.completedAt}</p>
+                  <p className="job-time mt-3 text-sm leading-6 text-[color:var(--foreground)]">{data.job.completedAt ? formatDateTime(data.job.completedAt) : messages.jobStatus.inProgress}</p>
                 </div>
                 <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
-                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">أحداث المخطط الزمني</p>
-                  <p className="mt-3 text-sm leading-6 text-[color:var(--foreground)]">{data.events.length.toLocaleString('ar-SA')} نقطة مسجلة</p>
+                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.timelineEvents}</p>
+                  <p className="mt-3 text-sm leading-6 text-[color:var(--foreground)]">{interpolate(messages.jobStatus.recordedPoints, { count: data.events.length.toLocaleString('ar-SA') })}</p>
                 </div>
               </div>
 
@@ -137,18 +138,18 @@ export function JobStatus({ jobId }: { jobId: string }) {
               <div className="flex flex-wrap items-center gap-3">
                 {data.resultUrl ? (
                   <a className={buttonVariants({ size: 'lg' })} href={data.resultUrl}>
-                    تنزيل ملف GLB
+                    {messages.jobStatus.download}
                     <Download className="size-4" />
                   </a>
                 ) : null}
                 {!data.resultUrl && ['failed', 'result_download_failed'].includes(data.job.status) ? (
                   <Button onClick={retryJob} size="lg" type="button" variant="secondary">
-                    إعادة المحاولة
+                    {messages.jobStatus.retry}
                     <RefreshCcw className="size-4" />
                   </Button>
                 ) : null}
                 <a className={buttonVariants({ size: 'lg', variant: 'ghost' })} href="/">
-                  ابدأ نموذجًا جديدًا
+                  {messages.jobStatus.newModel}
                   <ArrowRight className="size-4" />
                 </a>
               </div>
@@ -156,14 +157,14 @@ export function JobStatus({ jobId }: { jobId: string }) {
 
             <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-4">
               {data.coverUrl ? (
-                <img alt="غلاف النموذج الناتج" className="h-full w-full rounded-[1.5rem] object-cover" src={data.coverUrl} />
+                <img alt={messages.jobStatus.coverAlt} className="h-full w-full rounded-[1.5rem] object-cover" src={data.coverUrl} />
               ) : (
                 <div className="relative flex h-full min-h-[20rem] items-end overflow-hidden rounded-[1.5rem] bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,0.34),transparent_24%),linear-gradient(180deg,#3f3322,#15110d_48%,#0e0d12)] p-5">
                   <div className="absolute inset-x-[23%] bottom-[17%] top-[14%] rounded-[48%_52%_58%_42%/46%_40%_60%_54%] border border-white/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0.06))] shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_30px_50px_rgba(0,0,0,0.18)]" />
                   <div className="absolute inset-x-[30%] bottom-[10%] h-[14%] rounded-full bg-black/40 blur-2xl" />
                   <div className="relative z-10 space-y-2">
-                    <p className="text-[11px] tracking-[0.14em] text-[color:var(--accent)]">المعاينة قيد الانتظار</p>
-                    <p className="text-sm leading-6 text-[color:var(--muted-strong)]">ستظهر صورة الغلاف هنا بمجرد أن يحفظ خط المعالجة صورة مع النتيجة النهائية.</p>
+                    <p className="text-[11px] tracking-[0.14em] text-[color:var(--accent)]">{messages.jobStatus.previewPending}</p>
+                    <p className="text-sm leading-6 text-[color:var(--muted-strong)]">{messages.jobStatus.previewPendingDescription}</p>
                   </div>
                 </div>
               )}
@@ -173,9 +174,9 @@ export function JobStatus({ jobId }: { jobId: string }) {
 
         <section className="grid gap-4 md:grid-cols-3">
           {[
-            { icon: Layers3, title: 'خط المعالجة', text: terminalStates.includes(data.job.status) ? 'تم الوصول إلى الحالة النهائية' : 'يستمر التحديث حتى الاكتمال' },
-            { icon: Sparkles, title: 'تخزين النتيجة', text: data.resultUrl ? 'الملف متاح للتنزيل' : 'بانتظار حفظ الملف النهائي' },
-            { icon: RefreshCcw, title: 'الاستعادة', text: ['failed', 'result_download_failed'].includes(data.job.status) ? 'إعادة المحاولة متاحة' : 'لا حاجة إلى تدخل يدوي' },
+            { icon: Layers3, title: messages.jobStatus.processingTrack, text: terminalStates.includes(data.job.status) ? messages.jobStatus.processingTrackDone : messages.jobStatus.processingTrackActive },
+            { icon: Sparkles, title: messages.jobStatus.resultStorage, text: data.resultUrl ? messages.jobStatus.resultStorageReady : messages.jobStatus.resultStoragePending },
+            { icon: RefreshCcw, title: messages.jobStatus.recovery, text: ['failed', 'result_download_failed'].includes(data.job.status) ? messages.jobStatus.recoveryReady : messages.jobStatus.recoveryIdle },
           ].map((item) => (
             <div key={item.title} className="rounded-[1.7rem] border border-[color:var(--line)] bg-white/5 p-5">
               <item.icon className="mb-4 size-5 text-[color:var(--accent)]" />
@@ -187,8 +188,8 @@ export function JobStatus({ jobId }: { jobId: string }) {
       </div>
 
       <section className="rounded-[2.2rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_26px_90px_rgba(0,0,0,0.26)]">
-        <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">المخطط الزمني</p>
-        <h3 className="mt-3 font-serif text-3xl text-[color:var(--foreground)]">سجل الأحداث</h3>
+        <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.jobStatus.timeline}</p>
+        <h3 className="mt-3 font-serif text-3xl text-[color:var(--foreground)]">{messages.jobStatus.eventLog}</h3>
         <ul className="mt-6 space-y-4">
           {data.events.map((event, index) => (
             <li key={event.id} className="relative rounded-[1.6rem] border border-white/10 bg-black/20 p-4 ps-6">
@@ -196,7 +197,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
               <div className="absolute start-[calc(1rem-0.34rem)] top-6 size-3 rounded-full bg-[color:var(--accent)] shadow-[0_0_0_6px_rgba(193,168,106,0.1)]" />
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">المحطة {(index + 1).toLocaleString('ar-SA', { minimumIntegerDigits: 2 })}</p>
+                  <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.station} {(index + 1).toLocaleString('ar-SA', { minimumIntegerDigits: 2 })}</p>
                   <strong className="block text-base font-medium text-[color:var(--foreground)]">{formatEventLabel(event.eventType)}</strong>
                 </div>
                 <span className="job-time text-xs tracking-[0.12em] text-[color:var(--muted)]">{formatTime(event.createdAt)}</span>

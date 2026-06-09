@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import localFont from 'next/font/local';
 
 import { SiteHeader } from '@/components/site-header';
+import { messages } from '@/lib/messages';
 
 const thmanyahSans = localFont({
   src: [
@@ -37,8 +38,8 @@ const thmanyahSans = localFont({
 });
 
 export const metadata = {
-  title: 'أبعاد · توليد نماذج ثلاثية الأبعاد',
-  description: 'ارفع الصور، ولّد نماذج ثلاثية الأبعاد، ثم نزّل ملفات GLB الجاهزة.',
+  title: messages.meta.title,
+  description: messages.meta.description,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

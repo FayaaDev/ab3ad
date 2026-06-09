@@ -10,6 +10,7 @@ import '@uppy/drag-drop/dist/style.min.css';
 
 import { InlineGenerationProgress } from '@/components/inline-generation-progress';
 import { Button } from '@/components/ui/button';
+import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
 type Mode = 'single_image' | 'multi_view';
@@ -35,6 +36,7 @@ export function UploadForm() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [isJobTerminal, setIsJobTerminal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const uploadMessages = messages.uploadForm;
 
   const uppy = useMemo(() => {
     const instance = new Uppy({
@@ -57,7 +59,7 @@ export function UploadForm() {
       setSelectedFiles(
         instance.getFiles().map((file) => ({
           id: file.id,
-          name: file.name ?? 'ملف بدون اسم',
+          name: file.name ?? uploadMessages.unnamedFile,
           size: file.size ?? 0,
         })),
       );
@@ -89,9 +91,9 @@ export function UploadForm() {
     });
 
     instance.on('upload-error', (file, uploadError) => {
-      const fileName = file?.name ?? 'الملف';
+      const fileName = file?.name ?? uploadMessages.genericFile;
       const message = uploadError instanceof Error ? uploadError.message : String(uploadError);
-      setError(message || `فشل رفع الملف ${fileName}`);
+      setError(message || interpolate(uploadMessages.errors.uploadFileFailed, { fileName }));
     });
 
     return instance;
@@ -110,24 +112,24 @@ export function UploadForm() {
     try {
       const files = uppy.getFiles();
       if (!files.length) {
-        throw new Error('أضف صورة واحدة على الأقل.');
+        throw new Error(uploadMessages.errors.addImage);
       }
 
       uppy.setMeta({ mode, view_role: mode === 'single_image' ? 'single' : 'front' });
       const result = await uppy.upload();
       if (!result) {
-        throw new Error('لم تُرجع عملية الرفع نتيجة.');
+        throw new Error(uploadMessages.errors.missingUploadResult);
       }
       if ((result.failed?.length ?? 0) > 0) {
         const firstFailure = result.failed?.[0];
         const failureError = firstFailure?.error as { message?: string } | string | undefined;
-        const message = typeof failureError === 'object' && failureError ? String(failureError.message ?? 'فشل الرفع.') : String(failureError ?? 'فشل الرفع.');
+        const message = typeof failureError === 'object' && failureError ? String(failureError.message ?? uploadMessages.errors.uploadFailed) : String(failureError ?? uploadMessages.errors.uploadFailed);
         throw new Error(message);
       }
 
       const assetIds = ((result.successful?.[0]?.response?.body as { assetIds?: string[] } | undefined)?.assetIds ?? uploadedAssets.map((asset) => asset.id));
       if (!assetIds.length) {
-        throw new Error('اكتمل الرفع، لكن لم يتم إرجاع معرّفات الملفات.');
+        throw new Error(uploadMessages.errors.missingAssetIds);
       }
 
       const generationResponse = await fetch('/api/generations', {
@@ -151,13 +153,13 @@ export function UploadForm() {
         return;
       }
       if (!generationResponse.ok || !generationBody.jobId) {
-        throw new Error(generationBody.error || 'فشل طلب التوليد.');
+        throw new Error(generationBody.error || uploadMessages.errors.generationRequestFailed);
       }
 
       setActiveJobId(generationBody.jobId);
       setIsJobTerminal(false);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'تعذر بدء التوليد.');
+      setError(submitError instanceof Error ? submitError.message : uploadMessages.errors.generationStartFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -167,8 +169,8 @@ export function UploadForm() {
     <div className="space-y-5 rounded-[2rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">استوديو الإرسال</p>
-          <p className="text-xs tracking-[0.08em] text-[color:var(--muted)]">وضع المحاكاة مفعّل افتراضيًا أثناء التطوير المحلي</p>
+          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{uploadMessages.title}</p>
+          <p className="text-xs tracking-[0.08em] text-[color:var(--muted)]">{uploadMessages.mockModeNote}</p>
         </div>
 
         <div className={cn('native-uploader overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-black/20 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.24)]', isSubmitting && 'ring-2 ring-[color:var(--ring)]')}>
@@ -177,17 +179,17 @@ export function UploadForm() {
             height="260px"
             locale={{
               strings: {
-                dropHereOr: '%{browse} من جهازك',
-                browse: 'اختر الصور',
+                dropHereOr: uploadMessages.dropHereOr,
+                browse: uploadMessages.browse,
               },
             }}
-            note="PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف"
+            note={uploadMessages.dropzoneNote}
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">الوضع</span>
+            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.mode}</span>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
               <select
                 className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
@@ -196,17 +198,17 @@ export function UploadForm() {
                 onChange={(event) => setMode(event.target.value as Mode)}
               >
                 <option className="bg-[#0b0d12]" value="single_image">
-                  صورة واحدة إلى نموذج ثلاثي الأبعاد
+                  {uploadMessages.modeSingle}
                 </option>
                 <option className="bg-[#0b0d12]" value="multi_view">
-                  عدة زوايا إلى نموذج ثلاثي الأبعاد
+                  {uploadMessages.modeMulti}
                 </option>
               </select>
             </div>
           </label>
 
           <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">الجودة</span>
+            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.quality}</span>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
               <select
                 className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
@@ -215,10 +217,10 @@ export function UploadForm() {
                 onChange={(event) => setQuality(event.target.value as Quality)}
               >
                 <option className="bg-[#0b0d12]" value="fast">
-                  سريع
+                  {uploadMessages.qualityFast}
                 </option>
                 <option className="bg-[#0b0d12]" value="high">
-                  عالية
+                  {uploadMessages.qualityHigh}
                 </option>
               </select>
             </div>
@@ -227,13 +229,13 @@ export function UploadForm() {
 
         {mode === 'multi_view' ? (
           <p className="rounded-[1.25rem] border border-[rgba(193,168,106,0.24)] bg-[rgba(193,168,106,0.08)] px-4 py-3 text-sm leading-6 text-[color:var(--muted-strong)]">
-            في النسخة الحالية يتم رفع المجموعة دفعة واحدة. ما زلنا بحاجة إلى إضافة تسميات صريحة للأمام والخلف واليمين واليسار قبل الاستخدام الإنتاجي.
+            {uploadMessages.multiViewWarning}
           </p>
         ) : null}
 
         {selectedFiles.length ? (
           <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[color:var(--foreground)]">
-            <p className="mb-2 text-[11px] tracking-[0.14em] text-[color:var(--muted)]">الملفات المحددة</p>
+            <p className="mb-2 text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.selectedFiles}</p>
             <ul className="space-y-1">
               {selectedFiles.map((file) => (
                 <li className="flex items-center justify-between gap-3" key={file.id}>
@@ -245,17 +247,21 @@ export function UploadForm() {
           </div>
         ) : null}
 
-        {uploadedAssets.length ? <p className="rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">تم رفع {uploadedAssets.length} ملف{uploadedAssets.length > 1 ? 'ات' : ''} بنجاح.</p> : null}
+        {uploadedAssets.length ? (
+          <p className="rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+            {uploadedAssets.length === 1 ? uploadMessages.uploadSuccessSingular : interpolate(uploadMessages.uploadSuccessPlural, { count: uploadedAssets.length })}
+          </p>
+        ) : null}
 
         {error ? <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p> : null}
 
         <div className="flex flex-wrap items-center gap-3">
           <Button disabled={isSubmitting || Boolean(activeJobId && !isJobTerminal)} onClick={uploadThenGenerate} size="lg" type="button">
-            {isSubmitting ? 'جارٍ الرفع…' : activeJobId && !isJobTerminal ? 'جارٍ توليد النموذج…' : 'ولّد النموذج ثلاثي الأبعاد'}
+            {isSubmitting ? uploadMessages.submitting : activeJobId && !isJobTerminal ? uploadMessages.generating : uploadMessages.submit}
             <ArrowLeft className="size-4" />
           </Button>
           <p className="text-xs text-[color:var(--muted)]">
-            {mode === 'single_image' ? 'بحد أقصى صورة واحدة' : 'حتى 4 صور'}
+            {mode === 'single_image' ? uploadMessages.singleLimit : uploadMessages.multiLimit}
           </p>
         </div>
 

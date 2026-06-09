@@ -1,6 +1,7 @@
 import { ModelMarquee } from '@/components/model-marquee';
 import { UploadForm } from '@/components/upload-form';
 import { getCurrentUser } from '@/lib/auth';
+import { messages } from '@/lib/messages';
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -19,9 +20,9 @@ export default async function HomePage() {
           <UploadForm />
         ) : (
           <div className="space-y-4 rounded-[2rem] border border-[color:var(--line)] bg-black/20 p-6 text-center">
-            <p className="text-sm text-[color:var(--muted)]">سجّل الدخول أولًا حتى تُربط الرفعات والمهام والنتائج بحسابك الحقيقي.</p>
+            <p className="text-sm text-[color:var(--muted)]">{messages.home.loginPrompt}</p>
             <a className="inline-flex rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm text-white" href="/login?next=/">
-              الذهاب إلى تسجيل الدخول
+              {messages.home.loginCta}
             </a>
           </div>
         )}
