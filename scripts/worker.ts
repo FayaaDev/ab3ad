@@ -1,4 +1,7 @@
+import { loadLocalEnv } from './load-env';
 import { startJobWorker } from '../lib/worker';
+
+loadLocalEnv();
 
 const worker = startJobWorker();
 console.log('ab3ad worker running');

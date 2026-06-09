@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { getDownloadAssetForJob } from '@/lib/job-runner';
 import { getGenerationJob } from '@/lib/store';
 import { readStorageObject } from '@/lib/storage';
@@ -8,9 +8,10 @@ import { readStorageObject } from '@/lib/storage';
 export const runtime = 'nodejs';
 
 export async function GET(_: Request, { params }: { params: Promise<{ jobId: string }> }) {
-  const user = await getCurrentUser();
-  const { jobId } = await params;
-  const job = await getGenerationJob(jobId);
+  try {
+    const user = await requireCurrentUser();
+    const { jobId } = await params;
+    const job = await getGenerationJob(jobId);
 
   if (!job) {
     return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
@@ -24,11 +25,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
     return NextResponse.json({ error: 'Result not available.' }, { status: 404 });
   }
 
-  const buffer = await readStorageObject(asset.storageKey);
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      'content-type': 'model/gltf-binary',
-      'content-disposition': `attachment; filename="${path.basename(asset.originalFilename)}"`,
-    },
-  });
+    const buffer = await readStorageObject(asset.storageKey);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        'content-type': 'model/gltf-binary',
+        'content-disposition': `attachment; filename="${path.basename(asset.originalFilename)}"`,
+      },
+    });
+  } catch (error) {
+    const status = error instanceof AuthError ? error.status : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Download failed.' }, { status });
+  }
 }

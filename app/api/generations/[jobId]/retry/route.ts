@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getGenerationJob } from '@/lib/store';
 import { enqueueJobProcessing } from '@/lib/queue';
 
 export const runtime = 'nodejs';
 
 export async function POST(_: Request, { params }: { params: Promise<{ jobId: string }> }) {
-  const user = await getCurrentUser();
-  const { jobId } = await params;
-  const job = await getGenerationJob(jobId);
+  try {
+    const user = await requireCurrentUser();
+    const { jobId } = await params;
+    const job = await getGenerationJob(jobId);
 
   if (!job) {
     return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
@@ -35,5 +36,9 @@ export async function POST(_: Request, { params }: { params: Promise<{ jobId: st
   await addJobEvent({ jobId: retryJob.id, eventType: 'job_retried', payload: { retriedFrom: job.id } });
   await enqueueJobProcessing(retryJob.id);
 
-  return NextResponse.json({ jobId: retryJob.id, status: retryJob.status });
+    return NextResponse.json({ jobId: retryJob.id, status: retryJob.status });
+  } catch (error) {
+    const status = error instanceof AuthError ? error.status : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Retry failed.' }, { status });
+  }
 }

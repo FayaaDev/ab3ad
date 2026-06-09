@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
+import { getPool } from '@/lib/db';
 import {
   addBillingEvent,
   addJobEvent,
@@ -10,10 +11,55 @@ import {
   updateGenerationJob,
 } from '@/lib/store';
 import { queryTask, submitTask } from '@/lib/hi3d-client';
+import { enqueueJobProcessing } from '@/lib/queue';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
-import { mapHi3DStatus, nowIso, sleep } from '@/lib/utils';
+import { mapHi3DStatus, nowIso } from '@/lib/utils';
 
-const pollSchedule = process.env.HI3D_MODE === 'mock' ? [250, 500, 1_000, 2_000, 5_000] : [10_000, 20_000, 30_000, 60_000, 120_000, 120_000];
+const realPollSchedule = [10_000, 20_000, 30_000, 60_000, 120_000, 120_000, 120_000, 120_000];
+const mockPollSchedule = [250, 500, 1_000, 2_000, 5_000];
+
+export function getNextPollDelay(pollAttempts = 0) {
+  const schedule = process.env.HI3D_MODE === 'mock' ? mockPollSchedule : realPollSchedule;
+  return schedule[Math.min(pollAttempts, schedule.length - 1)];
+}
+
+function getMaxPollAttempts() {
+  const schedule = process.env.HI3D_MODE === 'mock' ? mockPollSchedule : realPollSchedule;
+  return Number(process.env.HI3D_MAX_POLL_ATTEMPTS ?? String(schedule.length + 2)) || schedule.length + 2;
+}
+
+async function withJobLock<T>(jobId: string, work: () => Promise<T>) {
+  const client = await getPool().connect();
+  try {
+    await client.query('begin');
+    await client.query('select pg_advisory_xact_lock(hashtext($1))', [jobId]);
+    const result = await work();
+    await client.query('commit');
+    return result;
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function scheduleNextPoll(jobId: string, pollAttempts: number) {
+  if (pollAttempts >= getMaxPollAttempts()) {
+    await updateGenerationJob(jobId, {
+      status: 'failed',
+      errorCode: 'hi3d_poll_timeout',
+      errorMessage: 'Hi3D did not finish before the polling timeout window ended.',
+      pollAttempts,
+    });
+    await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: 'hi3d_poll_timeout', errorMessage: 'Polling timeout reached.' } });
+    return;
+  }
+
+  const delayMs = getNextPollDelay(pollAttempts);
+  await addJobEvent({ jobId, eventType: 'poll_rescheduled', payload: { delayMs, pollAttempts } });
+  await enqueueJobProcessing(jobId, { delayMs, dedupeKey: `poll:${jobId}:${pollAttempts}` });
+}
 
 export async function processJob(jobId: string) {
   const { job, assets } = await getJobWithAssets(jobId);
@@ -33,108 +79,112 @@ export async function processJob(jobId: string) {
       hi3dTaskId: submission.taskId,
       errorCode: undefined,
       errorMessage: undefined,
+      pollAttempts: 0,
     });
     await addJobEvent({ jobId, eventType: 'submitted_to_hi3d', payload: submission.raw });
   }
 
-  for (const delay of pollSchedule) {
-    const latest = await getJobWithAssets(jobId);
-    if (!latest.job?.hi3dTaskId) {
-      return;
-    }
-    if (latest.job.status === 'completed' || latest.job.resultAssetId) {
-      return;
-    }
-
-    const query = await queryTask(latest.job.hi3dTaskId);
-    await updateGenerationJob(jobId, {
-      status: mapHi3DStatus(query.status),
-      errorCode: query.errorCode,
-      errorMessage: query.errorMessage,
-    });
-    await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
-
-    if (query.status === 'success' && query.result) {
-      await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl);
-      return;
-    }
-
-    if (query.status === 'failed') {
-      await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: query.errorCode, errorMessage: query.errorMessage } });
-      return;
-    }
-
-    await sleep(delay);
-  }
-}
-
-async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string) {
   const latest = await getJobWithAssets(jobId);
-  if (!latest.job) {
-    throw new Error('Job not found during result download');
+  if (!latest.job?.hi3dTaskId) {
+    return;
   }
   if (latest.job.status === 'completed' || latest.job.resultAssetId) {
     return;
   }
 
-  await updateGenerationJob(jobId, { status: 'downloading_result' });
-  await addJobEvent({ jobId, eventType: 'download_started', payload: { modelUrl, coverUrl } });
+  const query = await queryTask(latest.job.hi3dTaskId);
+  const nextPollAttempts = (latest.job.pollAttempts ?? 0) + 1;
+  await updateGenerationJob(jobId, {
+    status: mapHi3DStatus(query.status),
+    errorCode: query.errorCode,
+    errorMessage: query.errorMessage,
+    pollAttempts: nextPollAttempts,
+  });
+  await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
 
-  try {
-    const modelStorageKey = path.join('results', latest.job.userId, `${jobId}-${uuid()}.glb`);
-    let modelBuffer: Buffer;
-    if (modelUrl.startsWith('data:')) {
-      const [, data] = modelUrl.split(',', 2);
-      modelBuffer = Buffer.from(data, 'base64');
-      await saveStorageObject(modelStorageKey, modelBuffer, 'model/gltf-binary');
-    } else {
-      modelBuffer = await fetchToStorage(modelStorageKey, modelUrl, 'model/gltf-binary');
+  if (query.status === 'success' && query.result) {
+    await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl);
+    return;
+  }
+
+  if (query.status === 'failed') {
+    await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: query.errorCode, errorMessage: query.errorMessage } });
+    return;
+  }
+
+  await scheduleNextPoll(jobId, nextPollAttempts);
+}
+
+async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string) {
+  await withJobLock(jobId, async () => {
+    const latest = await getJobWithAssets(jobId);
+    if (!latest.job) {
+      throw new Error('Job not found during result download');
+    }
+    if (latest.job.status === 'completed' || latest.job.resultAssetId) {
+      return;
     }
 
-    const modelAsset = await createFileAsset({
-      userId: latest.job.userId,
-      storageKey: modelStorageKey,
-      originalFilename: `${jobId}.glb`,
-      mimeType: 'model/gltf-binary',
-      sizeBytes: modelBuffer.byteLength,
-      sha256: `generated-${jobId}`,
-      role: 'single',
-    });
+    await updateGenerationJob(jobId, { status: 'downloading_result' });
+    await addJobEvent({ jobId, eventType: 'download_started', payload: { modelUrl, coverUrl } });
 
-    let coverAssetId: string | undefined;
-    if (coverUrl) {
-      const coverStorageKey = path.join('results', latest.job.userId, `${jobId}-${uuid()}.png`);
-      const coverBuffer = await fetchToStorage(coverStorageKey, coverUrl, 'image/png');
-      const coverAsset = await createFileAsset({
+    try {
+      const modelStorageKey = path.join('results', latest.job.userId, `${jobId}-${uuid()}.glb`);
+      let modelBuffer: Buffer;
+      if (modelUrl.startsWith('data:')) {
+        const [, data] = modelUrl.split(',', 2);
+        modelBuffer = Buffer.from(data, 'base64');
+        await saveStorageObject(modelStorageKey, modelBuffer, 'model/gltf-binary');
+      } else {
+        modelBuffer = await fetchToStorage(modelStorageKey, modelUrl, 'model/gltf-binary');
+      }
+
+      const modelAsset = await createFileAsset({
         userId: latest.job.userId,
-        storageKey: coverStorageKey,
-        originalFilename: `${jobId}.png`,
-        mimeType: 'image/png',
-        sizeBytes: coverBuffer.byteLength,
-        sha256: `cover-${jobId}`,
+        storageKey: modelStorageKey,
+        originalFilename: `${jobId}.glb`,
+        mimeType: 'model/gltf-binary',
+        sizeBytes: modelBuffer.byteLength,
+        sha256: `generated-${jobId}`,
         role: 'single',
       });
-      coverAssetId = coverAsset.id;
-    }
 
-    await updateGenerationJob(jobId, {
-      status: 'completed',
-      resultAssetId: modelAsset.id,
-      coverAssetId,
-      completedAt: nowIso(),
-      errorCode: undefined,
-      errorMessage: undefined,
-    });
-    await addBillingEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
-    await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, coverAssetId } });
-  } catch (error) {
-    await updateGenerationJob(jobId, {
-      status: 'result_download_failed',
-      errorCode: 'result_download_failed',
-      errorMessage: error instanceof Error ? error.message : 'Unknown download error',
-    });
-    await addJobEvent({ jobId, eventType: 'download_failed', payload: { message: error instanceof Error ? error.message : 'Unknown error' } });
-  }
+      let coverAssetId: string | undefined;
+      if (coverUrl) {
+        const coverStorageKey = path.join('results', latest.job.userId, `${jobId}-${uuid()}.png`);
+        const coverBuffer = await fetchToStorage(coverStorageKey, coverUrl, 'image/png');
+        const coverAsset = await createFileAsset({
+          userId: latest.job.userId,
+          storageKey: coverStorageKey,
+          originalFilename: `${jobId}.png`,
+          mimeType: 'image/png',
+          sizeBytes: coverBuffer.byteLength,
+          sha256: `cover-${jobId}`,
+          role: 'single',
+        });
+        coverAssetId = coverAsset.id;
+      }
+
+      await updateGenerationJob(jobId, {
+        status: 'completed',
+        resultAssetId: modelAsset.id,
+        coverAssetId,
+        completedAt: nowIso(),
+        errorCode: undefined,
+        errorMessage: undefined,
+      });
+      await addBillingEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
+      await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, coverAssetId } });
+    } catch (error) {
+      await updateGenerationJob(jobId, {
+        status: 'result_download_failed',
+        errorCode: 'result_download_failed',
+        errorMessage: error instanceof Error ? error.message : 'Unknown download error',
+      });
+      await addJobEvent({ jobId, eventType: 'download_failed', payload: { message: error instanceof Error ? error.message : 'Unknown error' } });
+      throw error;
+    }
+  });
 }
 
 export async function handleHi3DCallback(taskId: string, status: 'created' | 'queueing' | 'processing' | 'success' | 'failed', payload: Record<string, unknown>) {

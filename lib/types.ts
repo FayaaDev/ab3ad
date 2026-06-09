@@ -27,6 +27,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  passwordHash?: string;
+  isAdmin: boolean;
   createdAt: string;
 }
 
@@ -58,6 +60,7 @@ export interface GenerationJob {
   coverAssetId?: string;
   errorCode?: string;
   errorMessage?: string;
+  pollAttempts?: number;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

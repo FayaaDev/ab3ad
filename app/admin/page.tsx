@@ -1,9 +1,23 @@
+import { redirect } from 'next/navigation';
+import { AdminAuthError, AuthError, requireAdminUser } from '@/lib/auth';
 import { formatDateTime, formatStatusLabel } from '@/lib/locale';
 import { listGenerationJobs } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
+  try {
+    await requireAdminUser();
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect('/login' as never);
+    }
+    if (error instanceof AdminAuthError) {
+      return <p className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">هذه الصفحة مخصّصة لمشغلي المنصة فقط.</p>;
+    }
+    throw error;
+  }
+
   const jobs = await listGenerationJobs();
   const completedJobs = jobs.filter((job) => job.status === 'completed').length;
   const activeJobs = jobs.filter((job) => !['completed', 'failed', 'result_download_failed', 'cancelled', 'expired'].includes(job.status)).length;
@@ -47,7 +61,8 @@ export default async function AdminPage() {
                 <th className="px-6 py-4 font-medium">الحالة</th>
                 <th className="px-6 py-4 font-medium">المستخدم</th>
                 <th className="px-6 py-4 font-medium">الصيغة</th>
-                <th className="px-6 py-4 font-medium">تاريخ الإنشاء</th>
+                <th className="px-6 py-4 font-medium">تشخيص</th>
+                <th className="px-6 py-4 font-medium">آخر تحديث</th>
               </tr>
             </thead>
             <tbody>
@@ -64,12 +79,24 @@ export default async function AdminPage() {
                     </td>
                     <td className="job-meta px-6 py-5 text-[color:var(--muted-strong)]">{job.userId}</td>
                     <td className="px-6 py-5 text-[color:var(--muted-strong)]">{job.outputFormat}</td>
-                    <td className="job-time px-6 py-5 text-[color:var(--muted-strong)]">{formatDateTime(job.createdAt)}</td>
+                    <td className="px-6 py-5 text-xs leading-6 text-[color:var(--muted-strong)]">
+                      {job.errorCode || job.errorMessage ? (
+                        <span>
+                          {job.errorCode ?? 'error'}
+                          {job.errorMessage ? ` · ${job.errorMessage}` : ''}
+                        </span>
+                      ) : job.hi3dTaskId ? (
+                        <span className="text-[color:var(--accent)]">{job.hi3dTaskId}</span>
+                      ) : (
+                        'لا يوجد'
+                      )}
+                    </td>
+                    <td className="job-time px-6 py-5 text-[color:var(--muted-strong)]">{formatDateTime(job.updatedAt)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td className="px-6 py-8 text-[color:var(--muted)]" colSpan={5}>
+                  <td className="px-6 py-8 text-[color:var(--muted)]" colSpan={6}>
                     لا توجد مهام بعد.
                   </td>
                 </tr>

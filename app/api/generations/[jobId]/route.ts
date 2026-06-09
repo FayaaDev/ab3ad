@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { enqueueJobProcessing } from '@/lib/queue';
 import { getFileAsset, getGenerationJob, listJobEvents } from '@/lib/store';
 
 export const runtime = 'nodejs';
 
 export async function GET(_: Request, { params }: { params: Promise<{ jobId: string }> }) {
-  const user = await getCurrentUser();
-  const { jobId } = await params;
-  const job = await getGenerationJob(jobId);
+  try {
+    const user = await requireCurrentUser();
+    const { jobId } = await params;
+    const job = await getGenerationJob(jobId);
 
   if (!job) {
     return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
@@ -25,10 +26,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
   const coverAsset = job.coverAssetId ? await getFileAsset(job.coverAssetId) : null;
   const events = await listJobEvents(job.id);
 
-  return NextResponse.json({
-    job,
-    resultUrl: resultAsset ? `/api/generations/${job.id}/download` : null,
-    coverUrl: coverAsset ? `/api/assets/${coverAsset.id}` : null,
-    events,
-  });
+    return NextResponse.json({
+      job,
+      resultUrl: resultAsset ? `/api/generations/${job.id}/download` : null,
+      coverUrl: coverAsset ? `/api/assets/${coverAsset.id}` : null,
+      events,
+    });
+  } catch (error) {
+    const status = error instanceof AuthError ? error.status : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not load job.' }, { status });
+  }
 }

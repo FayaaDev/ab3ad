@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client, CreateBucketCommand } from '@aws-sdk/client-s3';
+import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { assertTrustedResultUrl } from '@/lib/hi3d-security';
 
 type StorageDriver = 'local' | 'r2' | 's3';
 
@@ -122,6 +123,32 @@ async function ensureBucket() {
   await bucketReady;
 }
 
+async function fetchWithTimeout(sourceUrl: string, timeoutMs = Number(process.env.STORAGE_FETCH_TIMEOUT_MS ?? '30000') || 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(sourceUrl, { signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Result download timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function checkStorageReadiness() {
+  if (getStorageDriver() === 'local') {
+    await fs.mkdir(storageRoot, { recursive: true });
+    return { driver: 'local', target: storageRoot };
+  }
+
+  await ensureBucket();
+  return { driver: getStorageDriver(), target: requireBucketName() };
+}
+
 export function absoluteStoragePath(storageKey: string) {
   const key = normalizeStorageKey(storageKey);
   if (getStorageDriver() === 'local') {
@@ -169,7 +196,8 @@ export async function readStorageObject(storageKey: string) {
 }
 
 export async function fetchToStorage(storageKey: string, sourceUrl: string, contentType = 'application/octet-stream') {
-  const response = await fetch(sourceUrl);
+  assertTrustedResultUrl(sourceUrl);
+  const response = await fetchWithTimeout(sourceUrl);
   if (!response.ok) {
     throw new Error(`Failed to download result: ${response.status}`);
   }

@@ -40,9 +40,6 @@ export function UploadForm() {
       endpoint: '/api/uploads',
       fieldName: 'files',
       formData: true,
-      headers: {
-        'x-demo-user': 'demo-user',
-      },
       bundle: true,
     });
 
@@ -93,7 +90,6 @@ export function UploadForm() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-demo-user': 'demo-user',
         },
         body: JSON.stringify({
           assetIds,
@@ -106,6 +102,10 @@ export function UploadForm() {
       });
 
       const generationBody = (await generationResponse.json()) as { jobId?: string; error?: string };
+      if (generationResponse.status === 401) {
+        window.location.href = '/login?next=/';
+        return;
+      }
       if (!generationResponse.ok || !generationBody.jobId) {
         throw new Error(generationBody.error || 'فشل طلب التوليد.');
       }

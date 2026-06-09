@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "worker": "tsx scripts/worker.ts",
+    "healthcheck": "tsx scripts/healthcheck.ts",
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
-    "seed": "tsx scripts/seed-demo-user.ts"
+    "seed-admin": "tsx scripts/seed-admin-user.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1064.0",

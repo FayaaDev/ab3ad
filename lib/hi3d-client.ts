@@ -11,6 +11,51 @@ function isMockMode() {
   return (process.env.HI3D_MODE ?? 'mock') === 'mock';
 }
 
+function getFetchTimeoutMs() {
+  return Number(process.env.HI3D_FETCH_TIMEOUT_MS ?? '30000') || 30000;
+}
+
+async function readErrorBody(response: Response) {
+  const text = await response.text();
+  return text ? ` · ${text.slice(0, 400)}` : '';
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = getFetchTimeoutMs()) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Hi3D request timed out after ${timeoutMs}ms.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function appendConfiguredSubmitFields(form: FormData) {
+  if (process.env.HI3D_CALLBACK_URL) {
+    form.set(process.env.HI3D_CALLBACK_URL_FIELD ?? 'callback_url', process.env.HI3D_CALLBACK_URL);
+  }
+
+  if (process.env.HI3D_CALLBACK_SECRET) {
+    form.set(process.env.HI3D_CALLBACK_SECRET_FIELD ?? 'callback_secret', process.env.HI3D_CALLBACK_SECRET);
+  }
+
+  const extraFields = process.env.HI3D_SUBMIT_EXTRA_FIELDS;
+  if (!extraFields) {
+    return;
+  }
+
+  const parsed = JSON.parse(extraFields) as Record<string, string | number | boolean>;
+  for (const [key, value] of Object.entries(parsed)) {
+    form.set(key, String(value));
+  }
+}
+
 async function getAccessToken() {
   if (isMockMode()) {
     return 'mock-token';
@@ -28,7 +73,7 @@ async function getAccessToken() {
   }
 
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-  const response = await fetch(`${baseUrl}/open-api/oauth/token`, {
+  const response = await fetchWithTimeout(`${baseUrl}/open-api/oauth/token`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${auth}`,
@@ -36,7 +81,7 @@ async function getAccessToken() {
   });
 
   if (!response.ok) {
-    throw new Error(`Hi3D token request failed with ${response.status}`);
+    throw new Error(`Hi3D token request failed with ${response.status}${await readErrorBody(response)}`);
   }
 
   const data = (await response.json()) as { access_token?: string; expires_in?: number };
@@ -69,8 +114,9 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
   form.set('resolution', job.resolution);
   form.set('pbr', job.pbr ? '1' : '0');
   form.set('face_count', job.faceCount);
+  appendConfiguredSubmitFields(form);
 
-  for (const [index, asset] of assets.entries()) {
+  for (const asset of assets) {
     const buffer = await readStorageObject(asset.storageKey);
     const blob = new Blob([new Uint8Array(buffer)], { type: asset.mimeType });
     const filename = path.basename(asset.originalFilename);
@@ -81,7 +127,7 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
     }
   }
 
-  const response = await fetch(`${baseUrl}/open-api/v1/submit-task`, {
+  const response = await fetchWithTimeout(`${baseUrl}/open-api/v1/submit-task`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -90,7 +136,7 @@ export async function submitTask(job: GenerationJob, assets: FileAsset[]): Promi
   });
 
   if (!response.ok) {
-    throw new Error(`Hi3D submit failed with ${response.status}`);
+    throw new Error(`Hi3D submit failed with ${response.status}${await readErrorBody(response)}`);
   }
 
   const data = (await response.json()) as { task_id?: string } & Record<string, unknown>;
@@ -126,14 +172,14 @@ export async function queryTask(taskId: string): Promise<Hi3DQueryResponse> {
 
   const token = await getAccessToken();
   const baseUrl = process.env.HI3D_BASE_URL!;
-  const response = await fetch(`${baseUrl}/open-api/v1/query-task?task_id=${encodeURIComponent(taskId)}`, {
+  const response = await fetchWithTimeout(`${baseUrl}/open-api/v1/query-task?task_id=${encodeURIComponent(taskId)}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Hi3D query failed with ${response.status}`);
+    throw new Error(`Hi3D query failed with ${response.status}${await readErrorBody(response)}`);
   }
 
   const data = (await response.json()) as Record<string, unknown>;

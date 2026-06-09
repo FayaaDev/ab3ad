@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { createFileAsset } from '@/lib/store';
 import { saveStorageObject } from '@/lib/storage';
 import { fileToBuffer, sanitizeFilename, sha256 } from '@/lib/utils';
@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser();
+    const user = await requireCurrentUser();
     const formData = await request.formData();
     const mode = String(formData.get('mode') ?? 'single_image');
     const incomingRole = String(formData.get('view_role') ?? (mode === 'multi_view' ? '' : 'single'));
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ assetIds: uploadedAssets.map((asset) => asset.id), assets: uploadedAssets });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Upload failed.' }, { status: 400 });
+    const status = error instanceof AuthError ? error.status : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Upload failed.' }, { status });
   }
 }

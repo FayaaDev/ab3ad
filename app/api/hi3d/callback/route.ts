@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
+import { verifyHi3DCallbackSignature } from '@/lib/hi3d-security';
 import { handleHi3DCallback } from '@/lib/job-runner';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as Record<string, unknown>;
+    const rawBody = await request.text();
+    if (!verifyHi3DCallbackSignature(rawBody, request.headers)) {
+      return NextResponse.json({ error: 'Invalid callback signature.' }, { status: 401 });
+    }
+
+    const payload = JSON.parse(rawBody) as Record<string, unknown>;
     const taskId = String(payload.task_id ?? '');
     const status = String(payload.status ?? '') as 'created' | 'queueing' | 'processing' | 'success' | 'failed';
 

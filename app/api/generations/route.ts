@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getFileAssets } from '@/lib/store';
 import { enqueueJobProcessing } from '@/lib/queue';
 import { generationSchema, qualityToResolution, validateAssetsForMode } from '@/lib/validation';
@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser();
+    const user = await requireCurrentUser();
     const payload = generationSchema.parse(await request.json());
     const assets = await getFileAssets(payload.assetIds);
 
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ jobId: job.id, status: job.status });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not create generation job.' }, { status: 400 });
+    const status = error instanceof AuthError ? error.status : 400;
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not create generation job.' }, { status });
   }
 }

@@ -36,8 +36,13 @@ export async function ensureDatabaseSchema() {
           id text primary key,
           email text not null,
           name text not null,
+          password_hash text,
+          is_admin boolean not null default false,
           created_at timestamptz not null default now()
         );
+        alter table users add column if not exists password_hash text;
+        alter table users add column if not exists is_admin boolean not null default false;
+        create unique index if not exists users_email_idx on users(lower(email));
 
         create table if not exists file_assets (
           id text primary key,
@@ -68,10 +73,12 @@ export async function ensureDatabaseSchema() {
           cover_asset_id text references file_assets(id) on delete set null,
           error_code text,
           error_message text,
+          poll_attempts integer not null default 0,
           created_at timestamptz not null default now(),
           updated_at timestamptz not null default now(),
           completed_at timestamptz
         );
+        alter table generation_jobs add column if not exists poll_attempts integer not null default 0;
         create index if not exists generation_jobs_user_id_idx on generation_jobs(user_id);
         create index if not exists generation_jobs_hi3d_task_id_idx on generation_jobs(hi3d_task_id);
         create index if not exists generation_jobs_created_at_idx on generation_jobs(created_at desc);

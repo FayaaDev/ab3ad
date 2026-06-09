@@ -17,6 +17,8 @@ function mapUser(row: RowRecord): User {
     id: String(row.id),
     email: String(row.email),
     name: String(row.name),
+    passwordHash: row.password_hash ? String(row.password_hash) : undefined,
+    isAdmin: Boolean(row.is_admin),
     createdAt: new Date(String(row.created_at)).toISOString(),
   };
 }
@@ -52,6 +54,7 @@ function mapGenerationJob(row: RowRecord): GenerationJob {
     coverAssetId: row.cover_asset_id ? String(row.cover_asset_id) : undefined,
     errorCode: row.error_code ? String(row.error_code) : undefined,
     errorMessage: row.error_message ? String(row.error_message) : undefined,
+    pollAttempts: row.poll_attempts ? Number(row.poll_attempts) : 0,
     createdAt: new Date(String(row.created_at)).toISOString(),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
     completedAt: row.completed_at ? new Date(String(row.completed_at)).toISOString() : undefined,
@@ -90,27 +93,26 @@ async function queryOne<T>(sql: string, values: unknown[], mapper: (row: RowReco
   return rows[0] ?? null;
 }
 
-export async function ensureUser(userId: string) {
+export async function createUserAccount(user: { id: string; email: string; name: string; passwordHash: string; isAdmin?: boolean }) {
   await ensureDatabaseSchema();
   const createdAt = nowIso();
-  const email = `${userId}@ab3ad.local`;
-  const name = userId;
   const result = await getPool().query(
     `
-      insert into users (id, email, name, created_at)
-      values ($1, $2, $3, $4)
-      on conflict (id) do update set
-        email = excluded.email,
-        name = excluded.name
+      insert into users (id, email, name, password_hash, is_admin, created_at)
+      values ($1, $2, $3, $4, $5, $6)
       returning *
     `,
-    [userId, email, name, createdAt],
+    [user.id, user.email, user.name, user.passwordHash, user.isAdmin ?? false, createdAt],
   );
   return mapUser(result.rows[0] as RowRecord);
 }
 
 export async function getUser(userId: string) {
   return queryOne('select * from users where id = $1 limit 1', [userId], mapUser);
+}
+
+export async function getUserByEmail(email: string) {
+  return queryOne('select * from users where lower(email) = lower($1) limit 1', [email], mapUser);
 }
 
 export async function createFileAsset(asset: Omit<FileAsset, 'id' | 'createdAt'>) {
@@ -165,10 +167,10 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
     `
       insert into generation_jobs (
         id, user_id, asset_ids, mode, status, model, resolution, face_count, pbr, output_format,
-        hi3d_task_id, result_asset_id, cover_asset_id, error_code, error_message, created_at, updated_at, completed_at
+        hi3d_task_id, result_asset_id, cover_asset_id, error_code, error_message, poll_attempts, created_at, updated_at, completed_at
       ) values (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18
+        $11, $12, $13, $14, $15, $16, $17, $18, $19
       )
       returning *
     `,
@@ -188,6 +190,7 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
       created.coverAssetId ?? null,
       created.errorCode ?? null,
       created.errorMessage ?? null,
+      created.pollAttempts ?? 0,
       created.createdAt,
       created.updatedAt,
       created.completedAt ?? null,
@@ -214,6 +217,7 @@ export async function updateGenerationJob(jobId: string, patch: Partial<Generati
     ['coverAssetId', 'cover_asset_id'],
     ['errorCode', 'error_code'],
     ['errorMessage', 'error_message'],
+    ['pollAttempts', 'poll_attempts'],
     ['completedAt', 'completed_at'],
   ];
 

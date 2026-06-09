@@ -1,9 +1,10 @@
-const links = [
-  { href: '/', label: 'المعرض' },
-  { href: '/admin', label: 'الأرشيف' },
-];
+import { shouldTreatAsAdmin } from '@/lib/auth-utils';
+import { getCurrentUser } from '@/lib/auth';
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getCurrentUser();
+  const links = [{ href: '/', label: 'المعرض' }, ...(user && shouldTreatAsAdmin(user) ? [{ href: '/admin', label: 'الأرشيف' }] : [])];
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(7,8,14,0.72)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4 lg:px-8">
@@ -12,21 +13,26 @@ export function SiteHeader() {
             <span className="font-serif text-3xl tracking-[0.18em] text-[color:var(--foreground)]">ab3ad</span>
             <span className="text-[10px] tracking-[0.18em] text-[color:var(--muted)]">مشغل النماذج</span>
           </a>
-          <p className="max-w-md text-xs leading-6 text-[color:var(--muted)]">
-            تحويل الصور إلى نماذج ثلاثية الأبعاد بعناية، للدراسات التصميمية والمفاهيم والقطع القابلة للطباعة.
-          </p>
+          <p className="max-w-md text-xs leading-6 text-[color:var(--muted)]">تحويل الصور إلى نماذج ثلاثية الأبعاد بعناية، للدراسات التصميمية والمفاهيم والقطع القابلة للطباعة.</p>
         </div>
 
         <nav className="flex flex-wrap items-center gap-2">
           {links.map((link) => (
-            <a
-              key={link.href}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10"
-              href={link.href}
-            >
+            <a key={link.href} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" href={link.href}>
               {link.label}
             </a>
           ))}
+          {user ? (
+            <form action="/api/auth/logout" method="post">
+              <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" type="submit">
+                خروج · {user.name}
+              </button>
+            </form>
+          ) : (
+            <a className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" href="/login?next=/">
+              تسجيل الدخول
+            </a>
+          )}
         </nav>
       </div>
     </header>

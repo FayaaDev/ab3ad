@@ -1,5 +1,6 @@
 import type { ConnectionOptions } from 'bullmq';
 import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 export const generationQueueName = process.env.JOB_QUEUE_NAME ?? 'ab3ad-generation-jobs';
 
@@ -45,9 +46,9 @@ export function getGenerationQueue() {
   return queue;
 }
 
-export async function enqueueJobProcessing(jobId: string) {
+export async function enqueueJobProcessing(jobId: string, options?: { delayMs?: number; dedupeKey?: string }) {
   const queue = getGenerationQueue();
-  const queueJobId = `process:${jobId}`;
+  const queueJobId = options?.dedupeKey ?? `process:${jobId}`;
   const existing = await queue.getJob(queueJobId);
   if (existing) {
     return existing;
@@ -58,6 +59,24 @@ export async function enqueueJobProcessing(jobId: string) {
     { jobId },
     {
       jobId: queueJobId,
+      delay: options?.delayMs ?? 0,
     },
   );
+}
+
+export async function checkQueueReadiness() {
+  const redis = new IORedis(getRedisUrl(), {
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: false,
+    lazyConnect: true,
+  });
+
+  try {
+    await redis.connect();
+    await redis.ping();
+    const counts = await getGenerationQueue().getJobCounts('waiting', 'active', 'delayed', 'failed');
+    return counts;
+  } finally {
+    redis.disconnect();
+  }
 }

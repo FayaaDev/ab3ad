@@ -28,12 +28,12 @@ export function JobStatus({ jobId }: { jobId: string }) {
     let cancelled = false;
 
     async function load() {
-      const response = await fetch(`/api/generations/${jobId}`, {
-        headers: {
-          'x-demo-user': 'demo-user',
-        },
-      });
+      const response = await fetch(`/api/generations/${jobId}`);
       const body = (await response.json()) as JobPayload & { error?: string };
+      if (response.status === 401) {
+        window.location.href = `/login?next=/jobs/${jobId}`;
+        return;
+      }
       if (!response.ok) {
         throw new Error(body.error || 'تعذر تحميل المهمة.');
       }
@@ -59,9 +59,12 @@ export function JobStatus({ jobId }: { jobId: string }) {
   async function retryJob() {
     const response = await fetch(`/api/generations/${jobId}/retry`, {
       method: 'POST',
-      headers: { 'x-demo-user': 'demo-user' },
     });
     const body = (await response.json()) as { jobId?: string; error?: string };
+    if (response.status === 401) {
+      window.location.href = `/login?next=/jobs/${jobId}`;
+      return;
+    }
     if (!response.ok || !body.jobId) {
       setError(body.error || 'فشلت إعادة المحاولة.');
       return;
