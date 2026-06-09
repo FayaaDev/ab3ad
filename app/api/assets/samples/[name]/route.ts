@@ -1,10 +1,6 @@
-import { createReadStream } from 'node:fs';
-import { access } from 'node:fs/promises';
-import path from 'node:path';
-
 import { NextResponse } from 'next/server';
+import { readStorageObject } from '@/lib/storage';
 
-const ASSET_DIRECTORY = path.join(process.cwd(), 'assets');
 const ALLOWED_ASSETS = new Set([
   'Abdo-Ab3ad3d.glb',
   'Alisa.glb',
@@ -20,21 +16,17 @@ export async function GET(_: Request, context: { params: Promise<{ name: string 
     return NextResponse.json({ error: 'Asset not found.' }, { status: 404 });
   }
 
-  const assetPath = path.join(ASSET_DIRECTORY, name);
-
   try {
-    await access(assetPath);
+    const buffer = await readStorageObject(`samples/${name}`);
+
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        'Content-Type': 'model/gltf-binary',
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Disposition': `inline; filename="${name}"`,
+      },
+    });
   } catch {
     return NextResponse.json({ error: 'Asset not found.' }, { status: 404 });
   }
-
-  const stream = createReadStream(assetPath);
-
-  return new NextResponse(stream as unknown as ReadableStream, {
-    headers: {
-      'Content-Type': 'model/gltf-binary',
-      'Cache-Control': 'public, max-age=3600',
-      'Content-Disposition': `inline; filename="${name}"`,
-    },
-  });
 }

@@ -1,19 +1,41 @@
 import { Pool } from 'pg';
+import { getHyperdriveConnectionString } from '@/lib/cloudflare';
 import { getRequiredEnv } from '@/lib/env';
 
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
 function requireDatabaseUrl() {
-  return getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
+  return getHyperdriveConnectionString() || process.env.DATABASE_URL || getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
+}
+
+function getDatabaseSchema() {
+  const schema = process.env.DATABASE_SCHEMA;
+  if (!schema) {
+    return null;
+  }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(schema)) {
+    throw new Error('DATABASE_SCHEMA must be a valid PostgreSQL identifier.');
+  }
+  return schema;
+}
+
+function quoteIdentifier(identifier: string) {
+  return `"${identifier.replace(/"/g, '""')}"`;
 }
 
 function createPool() {
   const connectionString = requireDatabaseUrl();
+  const schema = getDatabaseSchema();
   return new Pool({
     connectionString,
     ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     max: Number(process.env.DATABASE_POOL_MAX ?? '10') || 10,
+    idleTimeoutMillis: 1_000,
+    connectionTimeoutMillis: 5_000,
+    allowExitOnIdle: true,
+    maxUses: 1,
+    options: schema ? `-c search_path=${schema},public` : undefined,
   });
 }
 
@@ -36,6 +58,12 @@ export async function ensureDatabaseSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
       const activePool = getPool();
+      const schema = getDatabaseSchema();
+      if (schema) {
+        const quotedSchema = quoteIdentifier(schema);
+        await activePool.query(`create schema if not exists ${quotedSchema}`);
+        await activePool.query(`set search_path to ${quotedSchema}, public`);
+      }
       await activePool.query(`
         create table if not exists users (
           id text primary key,

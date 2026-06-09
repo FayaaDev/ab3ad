@@ -59,6 +59,9 @@ async function scheduleNextPoll(jobId: string, pollAttempts: number) {
 
   const delayMs = getNextPollDelay(pollAttempts);
   await addJobEvent({ jobId, eventType: 'poll_rescheduled', payload: { delayMs, pollAttempts } });
+  if (process.env.JOB_QUEUE_MODE === 'inline') {
+    return;
+  }
   await enqueueJobProcessing(jobId, { delayMs, dedupeKey: `poll:${jobId}:${pollAttempts}` });
 }
 

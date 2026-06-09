@@ -8,7 +8,7 @@ function checkHi3DConfig() {
     return { mode };
   }
 
-  const required = ['HI3D_BASE_URL', 'HI3D_CLIENT_ID', 'HI3D_CLIENT_SECRET'];
+  const required = ['HI3D_BASE_URL', 'HI3D_CLIENT_ID', 'HI3D_CLIENT_SECRET', 'HI3D_CALLBACK_SECRET'];
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length) {
     throw new Error(`Missing Hi3D configuration: ${missing.join(', ')}`);

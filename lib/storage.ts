@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getR2BucketBinding } from '@/lib/cloudflare';
 import { assertTrustedResultUrl } from '@/lib/hi3d-security';
 
 type StorageDriver = 'local' | 'r2';
@@ -94,6 +95,12 @@ async function bodyToBuffer(body: unknown): Promise<Buffer> {
 }
 
 async function ensureBucket() {
+  const boundBucket = getR2BucketBinding();
+  if (boundBucket) {
+    await boundBucket.list({ limit: 1 });
+    return;
+  }
+
   if (!bucketReady) {
     bucketReady = (async () => {
       const Bucket = requireBucketName();
@@ -127,7 +134,7 @@ export async function checkStorageReadiness() {
   }
 
   await ensureBucket();
-  return { driver: getStorageDriver(), target: requireBucketName() };
+  return { driver: getStorageDriver(), target: requireBucketName(), binding: Boolean(getR2BucketBinding()) };
 }
 
 export function absoluteStoragePath(storageKey: string) {
@@ -147,6 +154,12 @@ export async function saveStorageObject(storageKey: string, data: Buffer, conten
     return filePath;
   }
 
+  const boundBucket = getR2BucketBinding();
+  if (boundBucket) {
+    await boundBucket.put(key, data, { httpMetadata: { contentType } });
+    return absoluteStoragePath(key);
+  }
+
   await ensureBucket();
   const Bucket = requireBucketName();
   await getStorageClient().send(
@@ -164,6 +177,15 @@ export async function readStorageObject(storageKey: string) {
   const key = normalizeStorageKey(storageKey);
   if (getStorageDriver() === 'local') {
     return fs.readFile(absoluteStoragePath(key));
+  }
+
+  const boundBucket = getR2BucketBinding();
+  if (boundBucket) {
+    const object = await boundBucket.get(key);
+    if (!object) {
+      throw new Error('Object not found.');
+    }
+    return Buffer.from(await object.arrayBuffer());
   }
 
   const Bucket = requireBucketName();

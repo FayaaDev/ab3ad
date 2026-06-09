@@ -1,0 +1,166 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ab3ad",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-09",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "ab3ad"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "APP_STORAGE",
+      "bucket_name": "ab3ad-production"
+    },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "ab3ad-open-next-cache"
+    }
+  ],
+  "vars": {
+    "APP_URL": "https://ab3ad.drfayaa.workers.dev",
+    "STORAGE_DRIVER": "r2",
+    "R2_BUCKET": "ab3ad-production",
+    "NEXT_INC_CACHE_R2_PREFIX": "production/next-cache",
+    "DATABASE_SSL": "true",
+    "DATABASE_POOL_MAX": "5",
+    "JOB_QUEUE_NAME": "ab3ad-generation-jobs",
+    "HI3D_MODE": "real",
+    "HI3D_BASE_URL": "https://api.hitem3d.ai",
+    "HI3D_CALLBACK_URL": "https://ab3ad.drfayaa.workers.dev/api/hi3d/callback",
+    "HI3D_CALLBACK_URL_FIELD": "callback_url",
+    "HI3D_CALLBACK_SECRET_FIELD": "callback_secret",
+    "HI3D_ALLOW_UNSIGNED_CALLBACKS": "false",
+    "HI3D_FETCH_TIMEOUT_MS": "30000",
+    "HI3D_MAX_POLL_ATTEMPTS": "10",
+    "STORAGE_FETCH_TIMEOUT_MS": "30000",
+    "MAX_UPLOAD_MB": "15",
+    "DATABASE_SCHEMA": "ab3ad_production",
+    "JOB_QUEUE_MODE": "inline"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "env": {
+    "staging": {
+      "name": "ab3ad-staging",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "ab3ad-staging"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "APP_STORAGE",
+          "bucket_name": "ab3ad-production"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "ab3ad-open-next-cache"
+        }
+      ],
+      "vars": {
+        "APP_URL": "https://ab3ad-staging.drfayaa.workers.dev",
+        "STORAGE_DRIVER": "r2",
+        "R2_BUCKET": "ab3ad-production",
+        "NEXT_INC_CACHE_R2_PREFIX": "staging/next-cache",
+        "DATABASE_SSL": "true",
+        "DATABASE_POOL_MAX": "5",
+        "JOB_QUEUE_NAME": "ab3ad-generation-jobs-staging",
+        "HI3D_MODE": "mock",
+        "HI3D_BASE_URL": "https://api.hitem3d.ai",
+        "HI3D_CALLBACK_URL": "https://ab3ad-staging.drfayaa.workers.dev/api/hi3d/callback",
+        "HI3D_CALLBACK_URL_FIELD": "callback_url",
+        "HI3D_CALLBACK_SECRET_FIELD": "callback_secret",
+        "HI3D_ALLOW_UNSIGNED_CALLBACKS": "false",
+        "HI3D_FETCH_TIMEOUT_MS": "30000",
+        "HI3D_MAX_POLL_ATTEMPTS": "10",
+        "STORAGE_FETCH_TIMEOUT_MS": "30000",
+        "MAX_UPLOAD_MB": "15",
+        "DATABASE_SCHEMA": "ab3ad_staging",
+        "JOB_QUEUE_MODE": "inline"
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1
+      },
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "0b2ddff5a6964170a291c25f0dcc953b",
+          "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
+        }
+      ]
+    },
+    "production": {
+      "name": "ab3ad",
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "ab3ad"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "APP_STORAGE",
+          "bucket_name": "ab3ad-production"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "ab3ad-open-next-cache"
+        }
+      ],
+      "vars": {
+        "APP_URL": "https://ab3ad.drfayaa.workers.dev",
+        "STORAGE_DRIVER": "r2",
+        "R2_BUCKET": "ab3ad-production",
+        "NEXT_INC_CACHE_R2_PREFIX": "production/next-cache",
+        "DATABASE_SSL": "true",
+        "DATABASE_POOL_MAX": "5",
+        "JOB_QUEUE_NAME": "ab3ad-generation-jobs",
+        "HI3D_MODE": "real",
+        "HI3D_BASE_URL": "https://api.hitem3d.ai",
+        "HI3D_CALLBACK_URL": "https://ab3ad.drfayaa.workers.dev/api/hi3d/callback",
+        "HI3D_CALLBACK_URL_FIELD": "callback_url",
+        "HI3D_CALLBACK_SECRET_FIELD": "callback_secret",
+        "HI3D_ALLOW_UNSIGNED_CALLBACKS": "false",
+        "HI3D_FETCH_TIMEOUT_MS": "30000",
+        "HI3D_MAX_POLL_ATTEMPTS": "10",
+        "STORAGE_FETCH_TIMEOUT_MS": "30000",
+        "MAX_UPLOAD_MB": "15",
+        "DATABASE_SCHEMA": "ab3ad_production",
+        "JOB_QUEUE_MODE": "inline"
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1
+      },
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "0b2ddff5a6964170a291c25f0dcc953b",
+          "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
+        }
+      ]
+    }
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "0b2ddff5a6964170a291c25f0dcc953b",
+      "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
+    }
+  ]
+}
