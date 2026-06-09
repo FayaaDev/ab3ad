@@ -1,7 +1,9 @@
-import Script from 'next/script';
-import { createElement } from 'react';
+'use client';
 
-import { Marquee } from '@/components/ui/marquee';
+import Script from 'next/script';
+import { createElement, useEffect, useRef, useState } from 'react';
+
+import { cn } from '@/lib/utils';
 
 type PreviewModel = {
   title: string;
@@ -47,7 +49,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   return (
     <figure
       dir="rtl"
-      className="group relative w-[20rem] overflow-hidden rounded-[2rem] border border-white/10 bg-black/20 p-4 shadow-[0_20px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm"
+      className="group relative w-[20rem] shrink-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/20 p-4 shadow-[0_20px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm"
     >
       <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-[1.4rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),rgba(255,255,255,0.02)_38%,rgba(0,0,0,0.4))]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(255,255,255,0.18),transparent_28%)]" />
@@ -55,7 +57,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
           src,
           alt: title,
           className:
-            'h-full w-full bg-transparent [--poster-color:transparent] transition-transform duration-500 group-hover:scale-[1.02]',
+            'block h-full w-full bg-transparent [--poster-color:transparent] transition-transform duration-500 group-hover:scale-[1.02]',
           loading: 'eager',
           reveal: 'auto',
           interactionPrompt: 'none',
@@ -86,6 +88,99 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   );
 }
 
+function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const firstSequenceRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTimestampRef = useRef<number | null>(null);
+  const pausedRef = useRef(false);
+  const [sequenceWidth, setSequenceWidth] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      setSequenceWidth(firstSequenceRef.current?.scrollWidth ?? 0);
+    };
+
+    measure();
+    window.addEventListener('resize', measure);
+
+    return () => {
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport || sequenceWidth === 0) {
+      return;
+    }
+
+    const pixelsPerSecond = 48;
+
+    const step = (timestamp: number) => {
+      if (lastTimestampRef.current === null) {
+        lastTimestampRef.current = timestamp;
+      }
+
+      const delta = timestamp - lastTimestampRef.current;
+      lastTimestampRef.current = timestamp;
+
+      if (!pausedRef.current) {
+        viewport.scrollLeft += (pixelsPerSecond * delta) / 1000;
+
+        if (viewport.scrollLeft >= sequenceWidth) {
+          viewport.scrollLeft -= sequenceWidth;
+        }
+      }
+
+      animationFrameRef.current = window.requestAnimationFrame(step);
+    };
+
+    viewport.scrollLeft = 0;
+    animationFrameRef.current = window.requestAnimationFrame(step);
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+      animationFrameRef.current = null;
+      lastTimestampRef.current = null;
+    };
+  }, [sequenceWidth]);
+
+  const handlePointerEnter = () => {
+    if (pauseOnHover) {
+      pausedRef.current = true;
+    }
+  };
+
+  const handlePointerLeave = () => {
+    pausedRef.current = false;
+  };
+
+  const cards = models.map((model, index) => <PreviewCard key={`${model.title}-${index}`} {...model} />);
+
+  return (
+    <div
+      ref={viewportRef}
+      className="overflow-x-hidden p-2"
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
+      <div className="flex w-max gap-4" dir="ltr">
+        <div ref={firstSequenceRef} className={cn('flex shrink-0 gap-4')}>
+          {cards}
+        </div>
+        <div aria-hidden="true" className={cn('flex shrink-0 gap-4')}>
+          {models.map((model, index) => (
+            <PreviewCard key={`${model.title}-clone-${index}`} {...model} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ModelMarquee() {
   return (
     <>
@@ -101,11 +196,7 @@ export function ModelMarquee() {
             معاينات فعلية من الأصول المحلية.
           </h2>
         </div>
-        <Marquee pauseOnHover className="[--duration:32s]" repeat={2}>
-          {models.map((model) => (
-            <PreviewCard key={model.title} {...model} />
-          ))}
-        </Marquee>
+        <MarqueeTrack />
         <div className="pointer-events-none absolute inset-y-0 start-0 w-28 bg-gradient-to-l from-[color:var(--background)] to-transparent" />
         <div className="pointer-events-none absolute inset-y-0 end-0 w-28 bg-gradient-to-r from-[color:var(--background)] to-transparent" />
       </div>
