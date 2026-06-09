@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { ensureDatabaseSchema, getPool } from '@/lib/db';
-import type { BillingEvent, Database, FileAsset, GenerationJob, JobEvent, User } from '@/lib/types';
+import type { BillingEvent, Database, FileAsset, GenerationJob, JobEvent, User, WalletEventType, WalletSummary } from '@/lib/types';
 import { nowIso } from '@/lib/utils';
 
 type RowRecord = Record<string, unknown>;
@@ -75,8 +75,8 @@ function mapBillingEvent(row: RowRecord): BillingEvent {
   return {
     id: String(row.id),
     userId: String(row.user_id),
-    jobId: String(row.job_id),
-    eventType: String(row.event_type),
+    jobId: row.job_id ? String(row.job_id) : undefined,
+    eventType: row.event_type as WalletEventType,
     creditDelta: Number(row.credit_delta),
     createdAt: new Date(String(row.created_at)).toISOString(),
   };
@@ -113,6 +113,10 @@ export async function getUser(userId: string) {
 
 export async function getUserByEmail(email: string) {
   return queryOne('select * from users where lower(email) = lower($1) limit 1', [email], mapUser);
+}
+
+export async function listUsers(limit = 100) {
+  return query('select * from users order by created_at desc limit $1', [limit], mapUser);
 }
 
 export async function createFileAsset(asset: Omit<FileAsset, 'id' | 'createdAt'>) {
@@ -278,9 +282,61 @@ export async function addBillingEvent(event: Omit<BillingEvent, 'id' | 'createdA
   };
   const result = await getPool().query(
     'insert into billing_events (id, user_id, job_id, event_type, credit_delta, created_at) values ($1, $2, $3, $4, $5, $6) returning *',
-    [created.id, created.userId, created.jobId, created.eventType, created.creditDelta, created.createdAt],
+    [created.id, created.userId, created.jobId ?? null, created.eventType, created.creditDelta, created.createdAt],
   );
   return mapBillingEvent(result.rows[0] as RowRecord);
+}
+
+export async function recordWalletEvent(event: { userId: string; eventType: WalletEventType; creditDelta: number; jobId?: string }) {
+  if (!Number.isInteger(event.creditDelta) || event.creditDelta === 0) {
+    throw new Error('Wallet credit delta must be a non-zero integer.');
+  }
+  if (event.creditDelta > 0 && event.jobId) {
+    throw new Error('Positive wallet deposits must not be attached to a generation job.');
+  }
+  if (event.eventType === 'generation_completed' && (!event.jobId || event.creditDelta !== -1)) {
+    throw new Error('Successful generation debits must include a job id and charge exactly one credit.');
+  }
+
+  return addBillingEvent(event);
+}
+
+export async function getWalletBalance(userId: string) {
+  await ensureDatabaseSchema();
+  const result = await getPool().query('select coalesce(sum(credit_delta), 0)::integer as balance from billing_events where user_id = $1', [userId]);
+  return Number(result.rows[0]?.balance ?? 0);
+}
+
+export async function listWalletEvents(userId: string, limit = 25) {
+  return query('select * from billing_events where user_id = $1 order by created_at desc limit $2', [userId, limit], mapBillingEvent);
+}
+
+export async function listRecentBillingEvents(limit = 100) {
+  return query('select * from billing_events order by created_at desc limit $1', [limit], mapBillingEvent);
+}
+
+export async function listWalletSummaries(limit = 100): Promise<WalletSummary[]> {
+  await ensureDatabaseSchema();
+  const users = await listUsers(limit);
+  const balances = await getPool().query(
+    `
+      select user_id, coalesce(sum(credit_delta), 0)::integer as balance
+      from billing_events
+      where user_id = any($1::text[])
+      group by user_id
+    `,
+    [users.map((user) => user.id)],
+  );
+  const balanceByUser = new Map((balances.rows as RowRecord[]).map((row) => [String(row.user_id), Number(row.balance)]));
+  const recentEvents = await Promise.all(users.map((user) => listWalletEvents(user.id, 5)));
+
+  return users.map((user, index) => ({
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    balance: balanceByUser.get(user.id) ?? 0,
+    recentEvents: recentEvents[index] ?? [],
+  }));
 }
 
 export async function getJobWithAssets(jobId: string) {

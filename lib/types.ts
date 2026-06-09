@@ -74,13 +74,24 @@ export interface JobEvent {
   createdAt: string;
 }
 
+export const WALLET_EVENT_TYPES = ['wallet_deposit', 'admin_credit_grant', 'generation_completed'] as const;
+export type WalletEventType = (typeof WALLET_EVENT_TYPES)[number];
+
 export interface BillingEvent {
   id: string;
   userId: string;
-  jobId: string;
-  eventType: string;
+  jobId?: string;
+  eventType: WalletEventType;
   creditDelta: number;
   createdAt: string;
+}
+
+export interface WalletSummary {
+  userId: string;
+  email: string;
+  name: string;
+  balance: number;
+  recentEvents: BillingEvent[];
 }
 
 export interface Database {

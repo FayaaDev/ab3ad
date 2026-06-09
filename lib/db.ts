@@ -24,6 +24,14 @@ export function getPool() {
   return pool;
 }
 
+export async function closePoolForTests() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+    schemaReady = null;
+  }
+}
+
 export async function ensureDatabaseSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
@@ -92,12 +100,17 @@ export async function ensureDatabaseSchema() {
         create table if not exists billing_events (
           id text primary key,
           user_id text not null references users(id) on delete cascade,
-          job_id text not null references generation_jobs(id) on delete cascade,
+          job_id text references generation_jobs(id) on delete cascade,
           event_type text not null,
           credit_delta integer not null,
           created_at timestamptz not null default now()
         );
+        alter table billing_events alter column job_id drop not null;
         create index if not exists billing_events_user_id_idx on billing_events(user_id, created_at desc);
+        create index if not exists billing_events_job_id_idx on billing_events(job_id) where job_id is not null;
+        create unique index if not exists billing_events_generation_completed_once_idx
+          on billing_events(job_id, event_type)
+          where job_id is not null and event_type = 'generation_completed';
       `);
     })();
   }

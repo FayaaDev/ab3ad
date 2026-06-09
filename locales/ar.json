@@ -90,10 +90,24 @@
       "missingUploadResult": "لم تُرجع عملية الرفع نتيجة.",
       "uploadFailed": "فشل الرفع.",
       "missingAssetIds": "اكتمل الرفع، لكن لم يتم إرجاع معرّفات الملفات.",
-      "insufficientBalance": "يرجى شحن رصيد حسابك لتتمكن من رفع الصور.",
+      "insufficientBalance": "يرجى شحن رصيد حسابك لتتمكن من توليد النموذج. يمكنك رفع الصورة أولًا ثم إضافة رصيد.",
       "generationRequestFailed": "فشل طلب التوليد.",
       "generationStartFailed": "تعذر بدء التوليد."
     }
+  },
+  "walletPanel": {
+    "eyebrow": "المحفظة",
+    "title": "رصيدك جاهز قبل التوليد.",
+    "description": "يمكنك رفع الصور بدون رصيد، لكن بدء التوليد يحتاج إلى رصيد واحد على الأقل. نخصم رصيدًا واحدًا فقط بعد نجاح المهمة.",
+    "balance": "الرصيد الحالي",
+    "fakeTopUp": "شحن تجريبي",
+    "addCredits": "أضف الرصيد",
+    "adding": "جارٍ الإضافة…",
+    "adminHelp": "هذا شحن تجريبي للتطوير. للمساعدة يمكن للمشرف إضافة رصيد يدويًا من لوحة التحكم.",
+    "recentActivity": "آخر العمليات",
+    "noActivity": "لا توجد عمليات بعد.",
+    "loadError": "تعذر تحميل المحفظة.",
+    "topUpError": "تعذر إضافة الرصيد."
   },
   "inlineGenerationProgress": {
     "eyebrow": "تقدّم التوليد",
@@ -198,6 +212,23 @@
     "none": "لا يوجد",
     "empty": "لا توجد مهام بعد."
   },
+  "adminWallet": {
+    "eyebrow": "محافظ المستخدمين",
+    "title": "رصيد وسجل الشحن لكل مستخدم.",
+    "description": "راقب الودائع، خصومات التوليد الناجحة، وحالات نقص الرصيد من نفس لوحة الدعم.",
+    "manualGrant": "إضافة رصيد يدوي",
+    "emailPlaceholder": "بريد المستخدم",
+    "grant": "أضف الرصيد",
+    "grantSuccess": "تمت إضافة الرصيد.",
+    "grantError": "تعذر إضافة الرصيد.",
+    "noActivity": "لا توجد عمليات.",
+    "empty": "لا يوجد مستخدمون بعد.",
+    "columns": {
+      "user": "المستخدم",
+      "balance": "الرصيد",
+      "activity": "آخر العمليات"
+    }
+  },
   "statusLabels": {
     "queued": "في الانتظار",
     "submitted_to_hi3d": "تم الإرسال إلى Ab3ad3d",
@@ -228,6 +259,9 @@
     "callback_processing": "وصل إشعار بدء المعالجة",
     "callback_success": "وصل إشعار نجاح المعالجة",
     "callback_failed": "وصل إشعار فشل المعالجة",
-    "job_retried": "أُعيدت محاولة المهمة"
+    "job_retried": "أُعيدت محاولة المهمة",
+    "wallet_deposit": "شحن رصيد تجريبي",
+    "admin_credit_grant": "إضافة رصيد من المشرف",
+    "generation_completed": "خصم توليد ناجح"
   }
 }

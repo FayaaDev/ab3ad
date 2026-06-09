@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
+import { AdminWalletPanel } from '@/components/admin-wallet-panel';
 import { AdminAuthError, AuthError, requireAdminUser } from '@/lib/auth';
 import { formatDateTime, formatStatusLabel } from '@/lib/locale';
 import { messages } from '@/lib/messages';
-import { listGenerationJobs } from '@/lib/store';
+import { listGenerationJobs, listWalletSummaries } from '@/lib/store';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export default async function AdminPage() {
     throw error;
   }
 
-  const jobs = await listGenerationJobs();
+  const [jobs, walletSummaries] = await Promise.all([listGenerationJobs(), listWalletSummaries()]);
   const completedJobs = jobs.filter((job) => job.status === 'completed').length;
   const activeJobs = jobs.filter((job) => !['completed', 'failed', 'result_download_failed', 'cancelled', 'expired'].includes(job.status)).length;
   const failedJobs = jobs.filter((job) => ['failed', 'result_download_failed'].includes(job.status)).length;
@@ -49,6 +50,8 @@ export default async function AdminPage() {
           ))}
         </div>
       </section>
+
+      <AdminWalletPanel initialSummaries={walletSummaries} />
 
       <section className="overflow-hidden rounded-[2.4rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_30px_100px_rgba(0,0,0,0.26)]">
         <div className="border-b border-white/10 px-6 py-5">

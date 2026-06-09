@@ -3,12 +3,12 @@ import { v4 as uuid } from 'uuid';
 import { getHi3DError, getHi3DResult } from '@/lib/hi3d-contract';
 import { getPool } from '@/lib/db';
 import {
-  addBillingEvent,
   addJobEvent,
   createFileAsset,
   findGenerationJobByTaskId,
   getFileAsset,
   getJobWithAssets,
+  recordWalletEvent,
   updateGenerationJob,
 } from '@/lib/store';
 import { normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
@@ -185,7 +185,7 @@ async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string
         errorCode: undefined,
         errorMessage: undefined,
       });
-      await addBillingEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
+      await recordWalletEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
       await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, coverAssetId } });
     } catch (error) {
       await updateGenerationJob(jobId, {

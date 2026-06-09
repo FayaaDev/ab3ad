@@ -15,6 +15,16 @@ export const generationSchema = z.object({
   pbr: z.boolean().default(true),
 });
 
+export const walletTopUpSchema = z.object({
+  amount: z.coerce.number().int().min(1).max(100),
+});
+
+export const adminCreditGrantSchema = z.object({
+  userId: z.string().trim().min(1).optional(),
+  email: z.string().trim().email().optional(),
+  amount: z.coerce.number().int().min(1).max(1000),
+}).refine((value) => Boolean(value.userId || value.email), 'Provide a user id or email.');
+
 export const DEFAULT_SINGLE_IMAGE_FACE_COUNT = '800000';
 
 export function assertValidUpload(file: File, buffer: Buffer) {

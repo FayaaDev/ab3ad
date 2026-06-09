@@ -3,6 +3,7 @@ import { AuthError, requireCurrentUser } from '@/lib/auth';
 import { addJobEvent, createGenerationJob, getFileAssets } from '@/lib/store';
 import { enqueueJobProcessing } from '@/lib/queue';
 import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, generationSchema, qualityToResolution, validateAssetsForMode } from '@/lib/validation';
+import { assertCanStartGeneration, isInsufficientCreditsError } from '@/lib/wallet';
 
 export const runtime = 'nodejs';
 
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
     }
 
     validateAssetsForMode(payload.mode, assets);
+    await assertCanStartGeneration(user.id);
 
     const job = await createGenerationJob({
       userId: user.id,
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ jobId: job.id, status: job.status });
   } catch (error) {
-    const status = error instanceof AuthError ? error.status : 400;
+    const status = error instanceof AuthError ? error.status : isInsufficientCreditsError(error) ? 402 : 400;
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Could not create generation job.' }, { status });
   }
 }
