@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { absoluteStoragePath, readStorageObject } from '../lib/storage';
 
-const storageEnvKeys = ['STORAGE_DRIVER', 'R2_BUCKET', 'R2_ACCOUNT_ID', 'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'S3_BUCKET', 'S3_ENDPOINT'] as const;
+const storageEnvKeys = ['STORAGE_DRIVER', 'R2_BUCKET', 'R2_ACCOUNT_ID', 'R2_ENDPOINT', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'] as const;
 
 function snapshotStorageEnv() {
   return Object.fromEntries(storageEnvKeys.map((key) => [key, process.env[key]]));
@@ -32,11 +32,21 @@ test('local storage paths reject traversal keys', () => {
 test('r2 storage requires bucket configuration', async () => {
   const env = snapshotStorageEnv();
   try {
-    process.env.STORAGE_DRIVER = 'r2';
+    delete process.env.STORAGE_DRIVER;
     delete process.env.R2_BUCKET;
-    delete process.env.S3_BUCKET;
 
-    await assert.rejects(() => readStorageObject('uploads/demo-user/example.png'), /Missing R2_BUCKET or S3_BUCKET/);
+    await assert.rejects(() => readStorageObject('uploads/demo-user/example.png'), /Missing R2_BUCKET/);
+  } finally {
+    restoreStorageEnv(env);
+  }
+});
+
+test('s3 storage driver is not supported', async () => {
+  const env = snapshotStorageEnv();
+  try {
+    process.env.STORAGE_DRIVER = 's3';
+
+    await assert.rejects(() => readStorageObject('uploads/demo-user/example.png'), /Unsupported STORAGE_DRIVER: s3/);
   } finally {
     restoreStorageEnv(env);
   }

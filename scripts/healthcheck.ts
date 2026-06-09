@@ -1,7 +1,10 @@
-import { loadLocalEnv } from './load-env';
+import { assertRequiredScriptEnv, loadLocalEnv } from './load-env';
 import { checkReadiness } from '../lib/ops';
 
+const requiredScriptEnv = ['DATABASE_URL', 'REDIS_URL'] as const;
+
 loadLocalEnv();
+assertRequiredScriptEnv('npm run healthcheck', requiredScriptEnv);
 
 checkReadiness()
   .then((result) => {

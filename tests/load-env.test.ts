@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { loadLocalEnv } from '../scripts/load-env';
+import { assertRequiredScriptEnv, getScriptEnvPresence, loadLocalEnv } from '../scripts/load-env';
 
 const envKeys = ['DATABASE_URL', 'REDIS_URL'] as const;
 
@@ -61,5 +61,37 @@ test('loadLocalEnv keeps non-empty shell variables', async () => {
     process.chdir(cwd);
     restoreEnv(env);
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('assertRequiredScriptEnv throws a clear error for empty required values', () => {
+  const env = snapshotEnv();
+
+  try {
+    process.env.DATABASE_URL = '';
+    delete process.env.REDIS_URL;
+
+    assert.throws(
+      () => assertRequiredScriptEnv('npm run worker', envKeys),
+      /npm run worker requires non-empty DATABASE_URL, REDIS_URL\. Check exported env vars and \.env\/\.env\.local\./,
+    );
+  } finally {
+    restoreEnv(env);
+  }
+});
+
+test('getScriptEnvPresence reports presence without exposing values', () => {
+  const env = snapshotEnv();
+
+  try {
+    process.env.DATABASE_URL = 'postgres://secret-value';
+    process.env.REDIS_URL = '';
+
+    assert.deepEqual(getScriptEnvPresence(envKeys), {
+      DATABASE_URL: true,
+      REDIS_URL: false,
+    });
+  } finally {
+    restoreEnv(env);
   }
 });

@@ -26,3 +26,22 @@ export function loadLocalEnv() {
     }
   }
 }
+
+function hasNonEmptyEnvValue(name: string) {
+  return Boolean(process.env[name]);
+}
+
+export function getScriptEnvPresence(names: readonly string[]) {
+  return Object.fromEntries(names.map((name) => [name, hasNonEmptyEnvValue(name)]));
+}
+
+export function assertRequiredScriptEnv(scriptName: string, names: readonly string[]) {
+  const missing = names.filter((name) => !hasNonEmptyEnvValue(name));
+  if (!missing.length) {
+    return;
+  }
+
+  throw new Error(
+    `${scriptName} requires non-empty ${missing.join(', ')}. Check exported env vars and .env/.env.local.`,
+  );
+}

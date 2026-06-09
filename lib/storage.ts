@@ -1,26 +1,19 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { CreateBucketCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { assertTrustedResultUrl } from '@/lib/hi3d-security';
 
-type StorageDriver = 'local' | 'r2' | 's3';
+type StorageDriver = 'local' | 'r2';
 
 const storageRoot = path.resolve(process.cwd(), process.env.STORAGE_ROOT ?? './data/storage');
 let client: S3Client | null = null;
 let bucketReady: Promise<void> | null = null;
 
 function getStorageDriver(): StorageDriver {
-  let driver = process.env.STORAGE_DRIVER;
-  if (!driver && (process.env.R2_BUCKET || process.env.R2_ACCOUNT_ID || process.env.R2_ENDPOINT)) {
-    driver = 'r2';
-  }
-  if (!driver && (process.env.S3_BUCKET || process.env.S3_ENDPOINT)) {
-    driver = 's3';
-  }
-  driver ??= 'local';
+  const driver = process.env.STORAGE_DRIVER ?? 'r2';
 
-  if (driver === 'local' || driver === 'r2' || driver === 's3') {
+  if (driver === 'local' || driver === 'r2') {
     return driver;
   }
   throw new Error(`Unsupported STORAGE_DRIVER: ${driver}`);
@@ -35,35 +28,31 @@ function normalizeStorageKey(storageKey: string) {
 }
 
 function requireBucketName() {
-  const bucketName = process.env.R2_BUCKET ?? process.env.S3_BUCKET;
+  const bucketName = process.env.R2_BUCKET;
   if (!bucketName) {
-    throw new Error('Missing R2_BUCKET or S3_BUCKET. Configure object storage before using the app.');
+    throw new Error('Missing R2_BUCKET. Configure Cloudflare R2 before using object storage.');
   }
   return bucketName;
 }
 
 function getObjectStorageConfig() {
-  const driver = getStorageDriver();
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? process.env.S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? process.env.S3_SECRET_ACCESS_KEY;
-  const endpoint =
-    process.env.R2_ENDPOINT ??
-    process.env.S3_ENDPOINT ??
-    (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined);
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const endpoint = process.env.R2_ENDPOINT ?? (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined);
 
   if (!endpoint) {
-    throw new Error(driver === 'r2' ? 'Missing R2_ACCOUNT_ID or R2_ENDPOINT.' : 'Missing S3_ENDPOINT.');
+    throw new Error('Missing R2_ACCOUNT_ID or R2_ENDPOINT.');
   }
   if (!accessKeyId || !secretAccessKey) {
-    throw new Error('Missing object storage access key credentials.');
+    throw new Error('Missing R2 access key credentials.');
   }
 
   return {
     endpoint,
     accessKeyId,
     secretAccessKey,
-    region: driver === 'r2' ? (process.env.R2_REGION ?? 'auto') : (process.env.S3_REGION ?? 'auto'),
-    forcePathStyle: driver === 'r2' ? process.env.R2_FORCE_PATH_STYLE === 'true' : process.env.S3_FORCE_PATH_STYLE === 'true',
+    region: process.env.R2_REGION ?? 'auto',
+    forcePathStyle: process.env.R2_FORCE_PATH_STYLE === 'true',
   };
 }
 
@@ -108,15 +97,7 @@ async function ensureBucket() {
   if (!bucketReady) {
     bucketReady = (async () => {
       const Bucket = requireBucketName();
-      const s3 = getStorageClient();
-      try {
-        await s3.send(new HeadBucketCommand({ Bucket }));
-      } catch (error) {
-        if (process.env.S3_AUTO_CREATE_BUCKET !== 'true') {
-          throw error;
-        }
-        await s3.send(new CreateBucketCommand({ Bucket }));
-      }
+      await getStorageClient().send(new HeadBucketCommand({ Bucket }));
     })();
   }
 
