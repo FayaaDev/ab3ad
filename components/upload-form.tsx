@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
-type Mode = 'single_image' | 'multi_view';
-type Quality = 'fast' | 'high';
+const DEFAULT_MODE = 'single_image';
+const DEFAULT_QUALITY = 'high';
 
 type UploadedAsset = {
   id: string;
@@ -28,8 +28,6 @@ type SelectedFile = {
 };
 
 export function UploadForm() {
-  const [mode, setMode] = useState<Mode>('single_image');
-  const [quality, setQuality] = useState<Quality>('fast');
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +41,7 @@ export function UploadForm() {
       restrictions: {
         maxFileSize: 20 * 1024 * 1024,
         allowedFileTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
-        maxNumberOfFiles: mode === 'single_image' ? 1 : 4,
+        maxNumberOfFiles: 1,
       },
       autoProceed: false,
     });
@@ -97,7 +95,7 @@ export function UploadForm() {
     });
 
     return instance;
-  }, [mode]);
+  }, [uploadMessages.genericFile, uploadMessages.unnamedFile, uploadMessages.errors.uploadFileFailed]);
 
   useEffect(() => {
     return () => {
@@ -115,7 +113,7 @@ export function UploadForm() {
         throw new Error(uploadMessages.errors.addImage);
       }
 
-      uppy.setMeta({ mode, view_role: mode === 'single_image' ? 'single' : 'front' });
+      uppy.setMeta({ mode: DEFAULT_MODE, view_role: 'single' });
       const result = await uppy.upload();
       if (!result) {
         throw new Error(uploadMessages.errors.missingUploadResult);
@@ -139,9 +137,9 @@ export function UploadForm() {
         },
         body: JSON.stringify({
           assetIds,
-          mode,
+          mode: DEFAULT_MODE,
           model: 'hitem3dv2.1',
-          quality,
+          quality: DEFAULT_QUALITY,
           outputFormat: 'glb',
           pbr: true,
         }),
@@ -187,21 +185,14 @@ export function UploadForm() {
           />
         </div>
 
+        {/*
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2">
             <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.mode}</span>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select
-                className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
-                disabled={Boolean(activeJobId && !isJobTerminal)}
-                value={mode}
-                onChange={(event) => setMode(event.target.value as Mode)}
-              >
+              <select className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none">
                 <option className="bg-[#0b0d12]" value="single_image">
                   {uploadMessages.modeSingle}
-                </option>
-                <option className="bg-[#0b0d12]" value="multi_view">
-                  {uploadMessages.modeMulti}
                 </option>
               </select>
             </div>
@@ -210,15 +201,7 @@ export function UploadForm() {
           <label className="space-y-2">
             <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.quality}</span>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select
-                className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
-                disabled={Boolean(activeJobId && !isJobTerminal)}
-                value={quality}
-                onChange={(event) => setQuality(event.target.value as Quality)}
-              >
-                <option className="bg-[#0b0d12]" value="fast">
-                  {uploadMessages.qualityFast}
-                </option>
+              <select className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none">
                 <option className="bg-[#0b0d12]" value="high">
                   {uploadMessages.qualityHigh}
                 </option>
@@ -226,12 +209,7 @@ export function UploadForm() {
             </div>
           </label>
         </div>
-
-        {mode === 'multi_view' ? (
-          <p className="rounded-[1.25rem] border border-[rgba(193,168,106,0.24)] bg-[rgba(193,168,106,0.08)] px-4 py-3 text-sm leading-6 text-[color:var(--muted-strong)]">
-            {uploadMessages.multiViewWarning}
-          </p>
-        ) : null}
+        */}
 
         {selectedFiles.length ? (
           <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[color:var(--foreground)]">
@@ -260,9 +238,7 @@ export function UploadForm() {
             {isSubmitting ? uploadMessages.submitting : activeJobId && !isJobTerminal ? uploadMessages.generating : uploadMessages.submit}
             <ArrowLeft className="size-4" />
           </Button>
-          <p className="text-xs text-[color:var(--muted)]">
-            {mode === 'single_image' ? uploadMessages.singleLimit : uploadMessages.multiLimit}
-          </p>
+          <p className="text-xs text-[color:var(--muted)]">{uploadMessages.singleLimit}</p>
         </div>
 
         {activeJobId ? <InlineGenerationProgress jobId={activeJobId} onTerminalStateChange={setIsJobTerminal} /> : null}
