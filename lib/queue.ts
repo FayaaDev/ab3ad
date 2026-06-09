@@ -43,9 +43,13 @@ export function getGenerationQueue() {
   return queue;
 }
 
+function toQueueJobId(value: string) {
+  return value.replace(/:/g, '__');
+}
+
 export async function enqueueJobProcessing(jobId: string, options?: { delayMs?: number; dedupeKey?: string }) {
   const queue = getGenerationQueue();
-  const queueJobId = options?.dedupeKey ?? `process:${jobId}`;
+  const queueJobId = toQueueJobId(options?.dedupeKey ?? `process:${jobId}`);
   const existing = await queue.getJob(queueJobId);
   if (existing) {
     return existing;

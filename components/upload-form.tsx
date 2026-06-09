@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Uppy from '@uppy/core';
 import { DragDrop } from '@uppy/react';
 import XHRUpload from '@uppy/xhr-upload';
@@ -19,10 +19,17 @@ type UploadedAsset = {
   role: string;
 };
 
+type SelectedFile = {
+  id: string;
+  name: string;
+  size: number;
+};
+
 export function UploadForm() {
   const [mode, setMode] = useState<Mode>('single_image');
   const [quality, setQuality] = useState<Quality>('fast');
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +50,26 @@ export function UploadForm() {
       bundle: true,
     });
 
+    const syncSelectedFiles = () => {
+      setSelectedFiles(
+        instance.getFiles().map((file) => ({
+          id: file.id,
+          name: file.name ?? 'ملف بدون اسم',
+          size: file.size ?? 0,
+        })),
+      );
+    };
+
+    instance.on('file-added', () => {
+      setError(null);
+      setUploadedAssets([]);
+      syncSelectedFiles();
+    });
+    instance.on('file-removed', syncSelectedFiles);
+    instance.on('cancel-all', () => {
+      setUploadedAssets([]);
+      syncSelectedFiles();
+    });
     instance.on('upload-success', async (_, response) => {
       const body = response.body as { assets?: UploadedAsset[] };
       if (body.assets) {
@@ -58,6 +85,12 @@ export function UploadForm() {
 
     return instance;
   }, [mode]);
+
+  useEffect(() => {
+    return () => {
+      uppy.destroy();
+    };
+  }, [uppy]);
 
   async function uploadThenGenerate() {
     setError(null);
@@ -183,6 +216,22 @@ export function UploadForm() {
             في النسخة الحالية يتم رفع المجموعة دفعة واحدة. ما زلنا بحاجة إلى إضافة تسميات صريحة للأمام والخلف واليمين واليسار قبل الاستخدام الإنتاجي.
           </p>
         ) : null}
+
+        {selectedFiles.length ? (
+          <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[color:var(--foreground)]">
+            <p className="mb-2 text-[11px] tracking-[0.14em] text-[color:var(--muted)]">الملفات المحددة</p>
+            <ul className="space-y-1">
+              {selectedFiles.map((file) => (
+                <li className="flex items-center justify-between gap-3" key={file.id}>
+                  <span className="truncate">{file.name}</span>
+                  <span className="text-xs text-[color:var(--muted)]">{Math.max(1, Math.round(file.size / 1024))} KB</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {uploadedAssets.length ? <p className="rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">تم رفع {uploadedAssets.length} ملف{uploadedAssets.length > 1 ? 'ات' : ''} بنجاح.</p> : null}
 
         {error ? <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p> : null}
 
