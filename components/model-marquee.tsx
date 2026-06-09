@@ -1,7 +1,7 @@
 'use client';
 
 import Script from 'next/script';
-import { createElement, useEffect, useRef, useState } from 'react';
+import { createElement, useEffect, useMemo, useRef, useState } from 'react';
 
 type PreviewModel = {
   title: string;
@@ -87,17 +87,21 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
 }
 
 function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
   const firstSequenceRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const offsetRef = useRef(0);
-  const [sequenceWidth, setSequenceWidth] = useState(0);
+  const [sizes, setSizes] = useState({ sequenceWidth: 0, viewportWidth: 0 });
 
   useEffect(() => {
     const measure = () => {
-      setSequenceWidth(firstSequenceRef.current?.offsetWidth ?? 0);
+      setSizes({
+        sequenceWidth: firstSequenceRef.current?.offsetWidth ?? 0,
+        viewportWidth: viewportRef.current?.offsetWidth ?? 0,
+      });
     };
 
     measure();
@@ -108,9 +112,17 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
     };
   }, []);
 
+  const duplicateCount = useMemo(() => {
+    if (sizes.sequenceWidth === 0) {
+      return 3;
+    }
+
+    return Math.max(3, Math.ceil((sizes.viewportWidth * 2) / sizes.sequenceWidth) + 1);
+  }, [sizes.sequenceWidth, sizes.viewportWidth]);
+
   useEffect(() => {
     const track = trackRef.current;
-    if (!track || sequenceWidth === 0) {
+    if (!track || sizes.sequenceWidth === 0) {
       return;
     }
 
@@ -127,8 +139,8 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
       if (!pausedRef.current) {
         offsetRef.current -= (pixelsPerSecond * delta) / 1000;
 
-        if (Math.abs(offsetRef.current) >= sequenceWidth) {
-          offsetRef.current += sequenceWidth;
+        if (Math.abs(offsetRef.current) >= sizes.sequenceWidth) {
+          offsetRef.current += sizes.sequenceWidth;
         }
 
         track.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
@@ -148,7 +160,7 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
       lastTimestampRef.current = null;
       offsetRef.current = 0;
     };
-  }, [sequenceWidth]);
+  }, [sizes.sequenceWidth]);
 
   const handlePointerEnter = () => {
     if (pauseOnHover) {
@@ -161,18 +173,23 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
   };
 
   return (
-    <div className="overflow-hidden p-2" onPointerEnter={handlePointerEnter} onPointerLeave={handlePointerLeave}>
+    <div
+      ref={viewportRef}
+      className="overflow-hidden p-2"
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
       <div ref={trackRef} className="flex w-max gap-4 will-change-transform" dir="ltr">
-        <div ref={firstSequenceRef} className="flex shrink-0 gap-4">
-          {models.map((model) => (
-            <PreviewCard key={model.title} {...model} />
-          ))}
-        </div>
-        <div aria-hidden="true" className="flex shrink-0 gap-4">
-          {models.map((model) => (
-            <PreviewCard key={`${model.title}-clone`} {...model} />
-          ))}
-        </div>
+        {Array.from({ length: duplicateCount }, (_, copyIndex) => (
+          <div key={copyIndex} ref={copyIndex === 0 ? firstSequenceRef : undefined} className="flex shrink-0 gap-4">
+            {models.map((model) => (
+              <PreviewCard
+                key={copyIndex === 0 ? model.title : `${model.title}-clone-${copyIndex}`}
+                {...model}
+              />
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );
