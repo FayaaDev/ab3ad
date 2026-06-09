@@ -3,8 +3,6 @@
 import Script from 'next/script';
 import { createElement, useEffect, useRef, useState } from 'react';
 
-import { cn } from '@/lib/utils';
-
 type PreviewModel = {
   title: string;
   caption: string;
@@ -89,16 +87,17 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
 }
 
 function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
-  const viewportRef = useRef<HTMLDivElement>(null);
   const firstSequenceRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
+  const offsetRef = useRef(0);
   const [sequenceWidth, setSequenceWidth] = useState(0);
 
   useEffect(() => {
     const measure = () => {
-      setSequenceWidth(firstSequenceRef.current?.scrollWidth ?? 0);
+      setSequenceWidth(firstSequenceRef.current?.offsetWidth ?? 0);
     };
 
     measure();
@@ -110,12 +109,12 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
   }, []);
 
   useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || sequenceWidth === 0) {
+    const track = trackRef.current;
+    if (!track || sequenceWidth === 0) {
       return;
     }
 
-    const pixelsPerSecond = 48;
+    const pixelsPerSecond = 18;
 
     const step = (timestamp: number) => {
       if (lastTimestampRef.current === null) {
@@ -126,17 +125,19 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
       lastTimestampRef.current = timestamp;
 
       if (!pausedRef.current) {
-        viewport.scrollLeft += (pixelsPerSecond * delta) / 1000;
+        offsetRef.current -= (pixelsPerSecond * delta) / 1000;
 
-        if (viewport.scrollLeft >= sequenceWidth) {
-          viewport.scrollLeft -= sequenceWidth;
+        if (Math.abs(offsetRef.current) >= sequenceWidth) {
+          offsetRef.current += sequenceWidth;
         }
+
+        track.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
       }
 
       animationFrameRef.current = window.requestAnimationFrame(step);
     };
 
-    viewport.scrollLeft = 0;
+    track.style.transform = 'translate3d(0px, 0, 0)';
     animationFrameRef.current = window.requestAnimationFrame(step);
 
     return () => {
@@ -145,6 +146,7 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
       }
       animationFrameRef.current = null;
       lastTimestampRef.current = null;
+      offsetRef.current = 0;
     };
   }, [sequenceWidth]);
 
@@ -158,22 +160,17 @@ function MarqueeTrack({ pauseOnHover = true }: { pauseOnHover?: boolean }) {
     pausedRef.current = false;
   };
 
-  const cards = models.map((model, index) => <PreviewCard key={`${model.title}-${index}`} {...model} />);
-
   return (
-    <div
-      ref={viewportRef}
-      className="overflow-x-hidden p-2"
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
-    >
-      <div className="flex w-max gap-4" dir="ltr">
-        <div ref={firstSequenceRef} className={cn('flex shrink-0 gap-4')}>
-          {cards}
+    <div className="overflow-hidden p-2" onPointerEnter={handlePointerEnter} onPointerLeave={handlePointerLeave}>
+      <div ref={trackRef} className="flex w-max gap-4 will-change-transform" dir="ltr">
+        <div ref={firstSequenceRef} className="flex shrink-0 gap-4">
+          {models.map((model) => (
+            <PreviewCard key={model.title} {...model} />
+          ))}
         </div>
-        <div aria-hidden="true" className={cn('flex shrink-0 gap-4')}>
-          {models.map((model, index) => (
-            <PreviewCard key={`${model.title}-clone-${index}`} {...model} />
+        <div aria-hidden="true" className="flex shrink-0 gap-4">
+          {models.map((model) => (
+            <PreviewCard key={`${model.title}-clone`} {...model} />
           ))}
         </div>
       </div>
