@@ -258,6 +258,10 @@ export async function listGenerationJobs(limit = 50) {
   return query('select * from generation_jobs order by created_at desc limit $1', [limit], mapGenerationJob);
 }
 
+export async function listGenerationJobsForUser(userId: string, limit = 25) {
+  return query('select * from generation_jobs where user_id = $1 order by created_at desc limit $2', [userId, limit], mapGenerationJob);
+}
+
 export async function addJobEvent(event: Omit<JobEvent, 'id' | 'createdAt'>) {
   await ensureDatabaseSchema();
   const created: JobEvent = {

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 const DEFAULT_MODE = 'single_image';
 const DEFAULT_QUALITY = 'high';
+const ACTIVE_JOB_STORAGE_KEY = 'ab3ad:active-job-id';
 
 type UploadedAsset = {
   id: string;
@@ -68,17 +69,20 @@ export function UploadForm() {
       setActiveJobId(null);
       setIsJobTerminal(false);
       setUploadedAssets([]);
+      window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
     });
     instance.on('file-removed', () => {
       setActiveJobId(null);
       setIsJobTerminal(false);
+      window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
     });
     instance.on('cancel-all', () => {
       setActiveJobId(null);
       setIsJobTerminal(false);
       setUploadedAssets([]);
+      window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
     });
     instance.on('upload-success', async (_, response) => {
@@ -109,6 +113,41 @@ export function UploadForm() {
     }
   }, [isJobTerminal]);
 
+  useEffect(() => {
+    const storedJobId = window.localStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
+    if (!storedJobId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadStoredJob() {
+      const response = await fetch(`/api/generations/${storedJobId}`);
+      const body = (await response.json()) as { job?: { status: string }; error?: string };
+
+      if (response.status === 401) {
+        window.location.href = '/login?next=/';
+        return;
+      }
+
+      if (!response.ok || !body.job) {
+        window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
+        return;
+      }
+
+      if (!cancelled) {
+        setActiveJobId(storedJobId);
+        setIsJobTerminal(['completed', 'failed', 'result_download_failed', 'cancelled', 'expired'].includes(body.job.status));
+      }
+    }
+
+    void loadStoredJob();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function uploadThenGenerate() {
     setError(null);
     setIsSubmitting(true);
@@ -118,6 +157,10 @@ export function UploadForm() {
       if (!files.length) {
         throw new Error(uploadMessages.errors.addImage);
       }
+
+      window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
+      setActiveJobId(null);
+      setIsJobTerminal(false);
 
       uppy.setMeta({ mode: DEFAULT_MODE, view_role: 'single' });
       const result = await uppy.upload();
@@ -165,6 +208,7 @@ export function UploadForm() {
 
       setActiveJobId(generationBody.jobId);
       setIsJobTerminal(false);
+      window.localStorage.setItem(ACTIVE_JOB_STORAGE_KEY, generationBody.jobId);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : uploadMessages.errors.generationStartFailed);
     } finally {
