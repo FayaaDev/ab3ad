@@ -29,6 +29,7 @@
   ],
   "vars": {
     "APP_URL": "https://ab3ad.drfayaa.workers.dev",
+    "SAMPLE_ASSET_BASE_URL": "https://ab3ad.drfayaa.workers.dev/api/assets/samples",
     "STORAGE_DRIVER": "r2",
     "R2_BUCKET": "ab3ad-production",
     "NEXT_INC_CACHE_R2_PREFIX": "production/next-cache",
@@ -73,6 +74,7 @@
       ],
       "vars": {
         "APP_URL": "https://ab3ad-staging.drfayaa.workers.dev",
+        "SAMPLE_ASSET_BASE_URL": "https://ab3ad-staging.drfayaa.workers.dev/api/assets/samples",
         "STORAGE_DRIVER": "r2",
         "R2_BUCKET": "ab3ad-production",
         "NEXT_INC_CACHE_R2_PREFIX": "staging/next-cache",
@@ -124,6 +126,7 @@
       ],
       "vars": {
         "APP_URL": "https://ab3ad.drfayaa.workers.dev",
+        "SAMPLE_ASSET_BASE_URL": "https://ab3ad.drfayaa.workers.dev/api/assets/samples",
         "STORAGE_DRIVER": "r2",
         "R2_BUCKET": "ab3ad-production",
         "NEXT_INC_CACHE_R2_PREFIX": "production/next-cache",

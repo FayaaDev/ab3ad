@@ -9,11 +9,9 @@ import { messages } from '@/lib/messages';
 type PreviewModel = {
   title: string;
   caption: string;
-  finish: string;
+  finish?: string;
   src: string;
 };
-
-const models = messages.modelMarquee.models as PreviewModel[];
 
 function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   return (
@@ -57,7 +55,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
   );
 }
 
-export function ModelMarquee() {
+export function ModelMarquee({ models }: { models: PreviewModel[] }) {
   return (
     <>
       <Script

@@ -22,7 +22,7 @@ export async function GET(_: Request, context: { params: Promise<{ name: string 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'model/gltf-binary',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
         'Content-Disposition': `inline; filename="${name}"`,
       },
     });

@@ -10,7 +10,6 @@ import '@uppy/drag-drop/dist/style.min.css';
 
 import { InlineGenerationProgress } from '@/components/inline-generation-progress';
 import { Button } from '@/components/ui/button';
-import { WalletPanel } from '@/components/wallet-panel';
 import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +33,6 @@ export function UploadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [isJobTerminal, setIsJobTerminal] = useState(false);
-  const [walletRefreshKey, setWalletRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const uploadMessages = messages.uploadForm;
 
@@ -107,7 +105,7 @@ export function UploadForm() {
 
   useEffect(() => {
     if (isJobTerminal) {
-      setWalletRefreshKey((value) => value + 1);
+      window.dispatchEvent(new Event('wallet:refresh'));
     }
   }, [isJobTerminal]);
 
@@ -160,7 +158,6 @@ export function UploadForm() {
       }
       if (!generationResponse.ok || !generationBody.jobId) {
         if (generationResponse.status === 402) {
-          setWalletRefreshKey((value) => value + 1);
           throw new Error(uploadMessages.errors.insufficientBalance);
         }
         throw new Error(generationBody.error || uploadMessages.errors.generationRequestFailed);
@@ -178,8 +175,6 @@ export function UploadForm() {
   return (
     <div className="space-y-5 rounded-[2rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       <div className="space-y-5">
-        <WalletPanel refreshKey={walletRefreshKey} />
-
         <div className="flex items-center justify-between gap-4">
           <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{uploadMessages.title}</p>
           <p className="text-xs tracking-[0.08em] text-[color:var(--muted)]">{uploadMessages.mockModeNote}</p>

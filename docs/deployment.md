@@ -22,9 +22,9 @@ Configured in `wrangler.jsonc`:
 
 For a Redis/BullMQ worker cutover, switch `JOB_QUEUE_MODE` to `redis` and verify the external worker can reach the same PostgreSQL schema, R2 bucket, and Hi3D callback URL before changing traffic.
 
-## Required secrets per environment
+## Required configuration per environment
 
-Use `wrangler secret bulk --env staging <file>` and `wrangler secret bulk --env production <file>` with an uncommitted JSON file containing:
+Use `wrangler secret bulk --env staging <file>` and `wrangler secret bulk --env production <file>` for secrets, and set non-secret vars in the environment config, with values for:
 
 - `AUTH_SECRET`
 - `ADMIN_EMAILS`
@@ -34,6 +34,7 @@ Use `wrangler secret bulk --env staging <file>` and `wrangler secret bulk --env 
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT` for non-Workers runtimes and compatibility fallback
 - `HI3D_CLIENT_ID`, `HI3D_CLIENT_SECRET`
 - `HI3D_CALLBACK_SECRET`
+- `SAMPLE_ASSET_BASE_URL` pointing at the public R2/custom-domain prefix for `samples/` assets, for example `https://assets.example.com/samples`
 - optional `HI3D_ALLOWED_RESULT_HOSTS`, `HI3D_SUBMIT_EXTRA_FIELDS`
 
 Do not commit secret files or print secret values in logs.
@@ -55,7 +56,7 @@ npm run deploy
 Staging and production checks:
 
 1. `GET /login` returns `200`.
-2. `GET /api/assets/samples/Alisa.glb` returns `200` and `Content-Type: model/gltf-binary` from R2.
+2. `GET $SAMPLE_ASSET_BASE_URL/Alisa.glb` returns `200` with long-lived cache headers.
 3. `GET /api/health` with `Authorization: Bearer $HEALTHCHECK_TOKEN` returns `ok: true`.
 4. Register/sign in with an admin allowlisted email.
 5. Upload one valid image through `/api/uploads`.

@@ -1,5 +1,6 @@
 import { shouldTreatAsAdmin } from '@/lib/auth-utils';
 import { getCurrentUser } from '@/lib/auth';
+import { ProfileMenu } from '@/components/profile-menu';
 import { messages } from '@/lib/messages';
 
 export async function SiteHeader() {
@@ -24,11 +25,14 @@ export async function SiteHeader() {
             </a>
           ))}
           {user ? (
-            <form action="/api/auth/logout" method="post">
-              <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" type="submit">
-                {messages.siteHeader.logout} · {user.name}
-              </button>
-            </form>
+            <>
+              <ProfileMenu userName={user.name} />
+              <form action="/api/auth/logout" method="post">
+                <button className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" type="submit">
+                  {messages.siteHeader.logout}
+                </button>
+              </form>
+            </>
           ) : (
             <a className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--foreground)] transition-colors hover:bg-white/10" href="/login?next=/">
               {messages.siteHeader.login}

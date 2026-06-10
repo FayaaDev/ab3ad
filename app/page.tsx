@@ -2,14 +2,16 @@ import { ModelMarquee } from '@/components/model-marquee';
 import { UploadForm } from '@/components/upload-form';
 import { getCurrentUser } from '@/lib/auth';
 import { messages } from '@/lib/messages';
+import { getModelMarqueeModels } from '@/lib/sample-assets';
 
 export default async function HomePage() {
   const user = await getCurrentUser();
+  const modelMarqueeModels = getModelMarqueeModels();
 
   return (
     <div className="space-y-6 lg:space-y-8">
       <section id="exhibition-wall">
-        <ModelMarquee />
+        <ModelMarquee models={modelMarqueeModels} />
       </section>
 
       <section
