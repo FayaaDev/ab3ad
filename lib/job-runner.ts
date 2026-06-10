@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
 import { getHi3DError, getHi3DResult } from '@/lib/hi3d-contract';
+import { getAppCloudflareContext } from '@/lib/cloudflare';
 import { getPool } from '@/lib/db';
 import {
   addJobEvent,
@@ -132,9 +133,19 @@ export async function processJob(jobId: string) {
   }
 }
 
-async function createPreviewAssetForResult(jobId: string, userId: string, modelAsset: FileAsset, modelBuffer: Buffer) {
+function shouldGeneratePreviewGlb() {
+  if (process.env.PREVIEW_GLB_GENERATION === 'enabled') {
+    return true;
+  }
   if (process.env.PREVIEW_GLB_GENERATION === 'disabled') {
-    await addJobEvent({ jobId, eventType: 'preview_skipped', payload: { reason: 'disabled' } });
+    return false;
+  }
+  return !getAppCloudflareContext();
+}
+
+async function createPreviewAssetForResult(jobId: string, userId: string, modelAsset: FileAsset, modelBuffer: Buffer) {
+  if (!shouldGeneratePreviewGlb()) {
+    await addJobEvent({ jobId, eventType: 'preview_skipped', payload: { reason: process.env.PREVIEW_GLB_GENERATION === 'disabled' ? 'disabled' : 'cloudflare_worker' } });
     return null;
   }
 
@@ -265,6 +276,11 @@ export async function handleHi3DCallback(taskId: string, status: 'created' | 'qu
   await addJobEvent({ jobId: job.id, eventType: `callback_${status}`, payload });
 
   if (status === 'success') {
+    if (process.env.JOB_QUEUE_MODE !== 'inline') {
+      await enqueueJobProcessing(job.id, { dedupeKey: `callback:${job.id}:success` });
+      return;
+    }
+
     const { modelUrl, coverUrl } = getHi3DResult(payload);
     if (!modelUrl) {
       throw new Error('Callback missing result URL');

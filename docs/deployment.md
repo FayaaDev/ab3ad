@@ -5,7 +5,7 @@ This app uses a fast-hybrid launch topology:
 - Cloudflare Workers runs the Next.js app/API through OpenNext.
 - Cloudflare R2 stores uploaded source images, generated results, and sample `.glb` assets.
 - PostgreSQL remains external for now. Prefer a Cloudflare Hyperdrive binding named `HYPERDRIVE`; `DATABASE_URL` remains the fallback for local scripts and non-Workers runtimes.
-- Job dispatch supports two modes. `JOB_QUEUE_MODE=redis` keeps Redis/BullMQ external and requires the Worker plus external worker process to share `DATABASE_URL`/`HYPERDRIVE`, `REDIS_URL`, `R2_*`, `JOB_QUEUE_NAME`, and Hi3D callback settings. `JOB_QUEUE_MODE=inline` uses `waitUntil` for the Cloudflare smoke/launch path and avoids request-time filesystem or Redis assumptions.
+- Job dispatch supports two modes. `JOB_QUEUE_MODE=redis` keeps Redis/BullMQ external and requires the Worker plus external worker process to share `DATABASE_URL`/`HYPERDRIVE`, `REDIS_URL`, `R2_*`, `JOB_QUEUE_NAME`, and Hi3D callback settings. `JOB_QUEUE_MODE=inline` uses `waitUntil` only for the staging smoke path and avoids request-time filesystem or Redis assumptions.
 
 ## Cloudflare resources
 
@@ -17,10 +17,12 @@ Configured in `wrangler.jsonc`:
 - OpenNext self-reference binding: `WORKER_SELF_REFERENCE`
 - Hyperdrive binding: `HYPERDRIVE`
 - Isolated Postgres schemas: `ab3ad_staging`, `ab3ad_production`
-- Launch queue mode: `JOB_QUEUE_MODE=inline`
+- Staging queue mode: `JOB_QUEUE_MODE=inline`
+- Production queue mode: `JOB_QUEUE_MODE=redis`
+- Worker-side preview GLB generation disabled with `PREVIEW_GLB_GENERATION=disabled` to avoid CPU-heavy mesh/texture transforms inside Cloudflare Workers
 - Observability enabled in staging and production
 
-For a Redis/BullMQ worker cutover, switch `JOB_QUEUE_MODE` to `redis` and verify the external worker can reach the same PostgreSQL schema, R2 bucket, and Hi3D callback URL before changing traffic.
+Production should keep `JOB_QUEUE_MODE=redis` so the external BullMQ worker handles Hi3D polling, result downloads, and preview generation. Before changing traffic, verify the external worker can reach the same PostgreSQL schema, R2 bucket, Redis queue, and Hi3D callback URL.
 
 ## Required configuration per environment
 
@@ -35,7 +37,7 @@ Use `wrangler secret bulk --env staging <file>` and `wrangler secret bulk --env 
 - `HI3D_CLIENT_ID`, `HI3D_CLIENT_SECRET`
 - `HI3D_CALLBACK_SECRET`
 - `SAMPLE_ASSET_BASE_URL` pointing at the public R2/custom-domain prefix for `samples/` assets, for example `https://assets.example.com/samples`
-- optional `HI3D_ALLOWED_RESULT_HOSTS`, `HI3D_SUBMIT_EXTRA_FIELDS`
+- optional `HI3D_ALLOWED_RESULT_HOSTS`, `HI3D_SUBMIT_EXTRA_FIELDS`, `PREVIEW_GLB_GENERATION` for the external worker
 
 Do not commit secret files or print secret values in logs.
 
@@ -61,7 +63,7 @@ Staging and production checks:
 4. Register/sign in with an admin allowlisted email.
 5. Upload one valid image through `/api/uploads`.
 6. Create a generation through `/api/generations`.
-7. Confirm `JOB_QUEUE_MODE=inline` or the external Redis/BullMQ worker writes job events, depending on the active queue mode.
+7. Confirm staging inline mode writes job events, or in production confirm the external Redis/BullMQ worker writes job events.
 8. Confirm `/api/hi3d/callback` rejects unsigned callbacks when `HI3D_MODE=real` and accepts the configured signature.
 9. Confirm completed result downloads come from `/api/generations/:jobId/download`, backed by app-controlled R2 storage.
 10. Confirm admin page shows jobs and failure diagnostics.

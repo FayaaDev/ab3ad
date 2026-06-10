@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { AuthError, requireCurrentUser } from '@/lib/auth';
-import { enqueueJobProcessing } from '@/lib/queue';
+import { enqueueJobProcessing, getQueueMode } from '@/lib/queue';
 import { getFileAsset, getGenerationJob, listJobEvents } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -18,7 +18,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
     return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
   }
 
-  if (['queued', 'submitted_to_hi3d', 'hi3d_created', 'hi3d_queueing', 'hi3d_processing'].includes(job.status)) {
+  if (getQueueMode() !== 'inline' && ['queued', 'submitted_to_hi3d', 'hi3d_created', 'hi3d_queueing', 'hi3d_processing'].includes(job.status)) {
     await enqueueJobProcessing(job.id);
   }
 

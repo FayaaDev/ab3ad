@@ -10,7 +10,7 @@ let queue: Queue | null = null;
 
 type QueueMode = 'redis' | 'inline';
 
-function getQueueMode(): QueueMode {
+export function getQueueMode(): QueueMode {
   const mode = process.env.JOB_QUEUE_MODE ?? 'redis';
   if (mode === 'redis' || mode === 'inline') {
     return mode;
@@ -72,13 +72,19 @@ async function processJobInline(jobId: string, delayMs = 0) {
   }
 
   const [{ getJobWithAssets }, { getNextPollDelay, processJob }] = await Promise.all([import('@/lib/store'), import('@/lib/job-runner')]);
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    await processJob(jobId);
+  await processJob(jobId);
+
+  if (process.env.HI3D_MODE !== 'mock') {
+    return;
+  }
+
+  for (let attempt = 1; attempt < 8; attempt += 1) {
     const { job } = await getJobWithAssets(jobId);
     if (!job || job.status === 'completed' || job.status === 'failed' || job.status === 'result_download_failed') {
       return;
     }
     await sleep(getNextPollDelay(job.pollAttempts ?? attempt));
+    await processJob(jobId);
   }
 }
 

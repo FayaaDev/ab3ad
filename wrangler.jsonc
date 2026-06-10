@@ -46,8 +46,9 @@
     "HI3D_MAX_POLL_ATTEMPTS": "10",
     "STORAGE_FETCH_TIMEOUT_MS": "30000",
     "MAX_UPLOAD_MB": "15",
+    "PREVIEW_GLB_GENERATION": "disabled",
     "DATABASE_SCHEMA": "ab3ad_production",
-    "JOB_QUEUE_MODE": "inline"
+    "JOB_QUEUE_MODE": "redis"
   },
   "observability": {
     "enabled": true,
@@ -91,6 +92,7 @@
         "HI3D_MAX_POLL_ATTEMPTS": "10",
         "STORAGE_FETCH_TIMEOUT_MS": "30000",
         "MAX_UPLOAD_MB": "15",
+        "PREVIEW_GLB_GENERATION": "disabled",
         "DATABASE_SCHEMA": "ab3ad_staging",
         "JOB_QUEUE_MODE": "inline"
       },
@@ -143,8 +145,9 @@
         "HI3D_MAX_POLL_ATTEMPTS": "10",
         "STORAGE_FETCH_TIMEOUT_MS": "30000",
         "MAX_UPLOAD_MB": "15",
+        "PREVIEW_GLB_GENERATION": "disabled",
         "DATABASE_SCHEMA": "ab3ad_production",
-        "JOB_QUEUE_MODE": "inline"
+        "JOB_QUEUE_MODE": "redis"
       },
       "observability": {
         "enabled": true,
