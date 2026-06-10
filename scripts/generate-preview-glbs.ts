@@ -3,6 +3,7 @@ import path from 'node:path';
 import { generatePreviewGlb, getPreviewFilename, summarizePreview } from '@/lib/preview-glb';
 
 const DEFAULT_SAMPLE_MODELS = [
+  'abady.glb',
   'Abdo-Ab3ad3d.glb',
   'Alisa.glb',
   'dabbrini.glb',

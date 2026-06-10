@@ -36,6 +36,11 @@
     "assetBadge": "جاهزة للطباعة",
     "models": [
       {
+        "title": "عبادي الجوهر",
+        "caption": "أخطبوط العود",
+        "src": "/api/assets/samples/abady.glb"
+      },
+      {
         "title": "محمد عبدة",
         "caption": "فنان العرب",
         "src": "/api/assets/samples/Abdo-Ab3ad3d.glb"

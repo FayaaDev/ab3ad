@@ -63,6 +63,14 @@ test('showcased Mageed sample resolves to the preview route', () => {
   assert.equal(mageedModel.src, '/api/assets/samples/Mageed.preview-v1.glb');
 });
 
+test('showcased abady sample resolves to the preview route', () => {
+  const abadyModel = getModelMarqueeModels().find((model) => model.title === 'عبادي الجوهر');
+
+  assert.ok(abadyModel);
+  assert.equal(abadyModel.caption, 'أخطبوط العود');
+  assert.equal(abadyModel.src, '/api/assets/samples/abady.preview-v1.glb');
+});
+
 test('non-sample asset URLs are left unchanged', () => {
   const previousBaseUrl = process.env.SAMPLE_ASSET_BASE_URL;
 
