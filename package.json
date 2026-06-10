@@ -16,10 +16,14 @@
     "cf:dry-run": "opennextjs-cloudflare build && wrangler deploy --dry-run --env staging",
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
-    "seed-admin": "tsx scripts/seed-admin-user.ts"
+    "seed-admin": "tsx scripts/seed-admin-user.ts",
+    "previews:generate": "tsx scripts/generate-preview-glbs.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1064.0",
+    "@gltf-transform/core": "^4.4.0",
+    "@gltf-transform/extensions": "^4.4.0",
+    "@gltf-transform/functions": "^4.4.0",
     "@opennextjs/cloudflare": "^1.19.11",
     "@radix-ui/react-icons": "^1.3.2",
     "@tailwindcss/postcss": "^4.3.0",
@@ -33,8 +37,10 @@
     "bullmq": "^5.78.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "draco3dgltf": "^1.5.7",
     "ioredis": "^5.11.1",
     "lucide-react": "^1.17.0",
+    "meshoptimizer": "^1.1.1",
     "next": "15.5.19",
     "pg": "^8.21.0",
     "postcss": "^8.5.15",
@@ -48,6 +54,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260609.1",
+    "@gltf-transform/cli": "^4.4.0",
     "@types/node": "^22.15.30",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.1.8",

@@ -1,4 +1,5 @@
 import { messages } from '@/lib/messages';
+import { getSamplePreviewRoute } from '@/lib/preview-glb';
 
 const SAMPLE_ROUTE_PREFIX = '/api/assets/samples/';
 
@@ -19,9 +20,13 @@ export function resolveSampleAssetUrl(src: string) {
   return `${trimTrailingSlashes(baseUrl)}/${src.slice(SAMPLE_ROUTE_PREFIX.length)}`;
 }
 
+export function resolveSamplePreviewAssetUrl(src: string) {
+  return resolveSampleAssetUrl(getSamplePreviewRoute(src));
+}
+
 export function getModelMarqueeModels() {
   return messages.modelMarquee.models.map((model) => ({
     ...model,
-    src: resolveSampleAssetUrl(model.src),
+    src: resolveSamplePreviewAssetUrl(model.src),
   }));
 }

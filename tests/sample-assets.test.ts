@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getModelMarqueeModels, resolveSampleAssetUrl } from '../lib/sample-assets';
+import { getPreviewFilename, getSamplePreviewRoute } from '../lib/preview-glb';
+import { getModelMarqueeModels, resolveSampleAssetUrl, resolveSamplePreviewAssetUrl } from '../lib/sample-assets';
 
 function restoreEnv(key: 'SAMPLE_ASSET_BASE_URL' | 'NEXT_PUBLIC_SAMPLE_ASSET_BASE_URL', value: string | undefined) {
   if (value === undefined) {
@@ -34,10 +35,17 @@ test('sample asset URLs can be rewritten to a public asset host', () => {
     process.env.SAMPLE_ASSET_BASE_URL = 'https://assets.example.com/samples/';
 
     assert.equal(resolveSampleAssetUrl('/api/assets/samples/Alisa.glb'), 'https://assets.example.com/samples/Alisa.glb');
+    assert.equal(resolveSamplePreviewAssetUrl('/api/assets/samples/Alisa.glb'), 'https://assets.example.com/samples/Alisa.preview-v1.glb');
     assert.equal(getModelMarqueeModels()[0]?.src.startsWith('https://assets.example.com/samples/'), true);
+    assert.equal(getModelMarqueeModels()[0]?.src.endsWith('.preview-v1.glb'), true);
   } finally {
     restoreEnv('SAMPLE_ASSET_BASE_URL', previousBaseUrl);
   }
+});
+
+test('sample preview routes use versioned GLB names', () => {
+  assert.equal(getPreviewFilename('Alisa.glb'), 'Alisa.preview-v1.glb');
+  assert.equal(getSamplePreviewRoute('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.preview-v1.glb');
 });
 
 test('non-sample asset URLs are left unchanged', () => {

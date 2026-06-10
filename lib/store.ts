@@ -51,6 +51,7 @@ function mapGenerationJob(row: RowRecord): GenerationJob {
     outputFormat: row.output_format as GenerationJob['outputFormat'],
     hi3dTaskId: row.hi3d_task_id ? String(row.hi3d_task_id) : undefined,
     resultAssetId: row.result_asset_id ? String(row.result_asset_id) : undefined,
+    previewAssetId: row.preview_asset_id ? String(row.preview_asset_id) : undefined,
     coverAssetId: row.cover_asset_id ? String(row.cover_asset_id) : undefined,
     errorCode: row.error_code ? String(row.error_code) : undefined,
     errorMessage: row.error_message ? String(row.error_message) : undefined,
@@ -171,10 +172,10 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
     `
       insert into generation_jobs (
         id, user_id, asset_ids, mode, status, model, resolution, face_count, pbr, output_format,
-        hi3d_task_id, result_asset_id, cover_asset_id, error_code, error_message, poll_attempts, created_at, updated_at, completed_at
+        hi3d_task_id, result_asset_id, preview_asset_id, cover_asset_id, error_code, error_message, poll_attempts, created_at, updated_at, completed_at
       ) values (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-        $11, $12, $13, $14, $15, $16, $17, $18, $19
+        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
       )
       returning *
     `,
@@ -191,6 +192,7 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
       created.outputFormat,
       created.hi3dTaskId ?? null,
       created.resultAssetId ?? null,
+      created.previewAssetId ?? null,
       created.coverAssetId ?? null,
       created.errorCode ?? null,
       created.errorMessage ?? null,
@@ -218,6 +220,7 @@ export async function updateGenerationJob(jobId: string, patch: Partial<Generati
     ['outputFormat', 'output_format'],
     ['hi3dTaskId', 'hi3d_task_id'],
     ['resultAssetId', 'result_asset_id'],
+    ['previewAssetId', 'preview_asset_id'],
     ['coverAssetId', 'cover_asset_id'],
     ['errorCode', 'error_code'],
     ['errorMessage', 'error_message'],

@@ -13,7 +13,9 @@ import {
 } from '@/lib/store';
 import { normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
 import { enqueueJobProcessing } from '@/lib/queue';
+import { generatePreviewGlb, getPreviewFilename, getPreviewStorageKey, summarizePreview } from '@/lib/preview-glb';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
+import type { FileAsset } from '@/lib/types';
 import { mapHi3DStatus, nowIso } from '@/lib/utils';
 
 const realPollSchedule = [10_000, 20_000, 30_000, 60_000, 120_000, 120_000, 120_000, 120_000];
@@ -130,6 +132,47 @@ export async function processJob(jobId: string) {
   }
 }
 
+async function createPreviewAssetForResult(jobId: string, userId: string, modelAsset: FileAsset, modelBuffer: Buffer) {
+  if (process.env.PREVIEW_GLB_GENERATION === 'disabled') {
+    await addJobEvent({ jobId, eventType: 'preview_skipped', payload: { reason: 'disabled' } });
+    return null;
+  }
+
+  try {
+    const previewBuffer = await generatePreviewGlb(modelBuffer);
+    const previewStorageKey = getPreviewStorageKey(modelAsset.storageKey);
+    await saveStorageObject(previewStorageKey, previewBuffer, 'model/gltf-binary');
+
+    const previewAsset = await createFileAsset({
+      userId,
+      storageKey: previewStorageKey,
+      originalFilename: getPreviewFilename(modelAsset.originalFilename),
+      mimeType: 'model/gltf-binary',
+      sizeBytes: previewBuffer.byteLength,
+      sha256: `preview-${modelAsset.sha256}`,
+      role: modelAsset.role,
+    });
+
+    await addJobEvent({
+      jobId,
+      eventType: 'preview_generated',
+      payload: {
+        previewAssetId: previewAsset.id,
+        storageKey: previewStorageKey,
+        ...summarizePreview(modelBuffer.byteLength, previewBuffer.byteLength),
+      },
+    });
+    return previewAsset;
+  } catch (error) {
+    await addJobEvent({
+      jobId,
+      eventType: 'preview_generation_failed',
+      payload: { message: error instanceof Error ? error.message : 'Unknown preview generation error' },
+    });
+    return null;
+  }
+}
+
 async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string) {
   await withJobLock(jobId, async () => {
     const latest = await getJobWithAssets(jobId);
@@ -164,6 +207,8 @@ async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string
         role: 'single',
       });
 
+      const previewAsset = await createPreviewAssetForResult(jobId, latest.job.userId, modelAsset, modelBuffer);
+
       let coverAssetId: string | undefined;
       if (coverUrl) {
         const coverStorageKey = path.join('results', latest.job.userId, `${jobId}-${uuid()}.png`);
@@ -183,13 +228,14 @@ async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string
       await updateGenerationJob(jobId, {
         status: 'completed',
         resultAssetId: modelAsset.id,
+        previewAssetId: previewAsset?.id,
         coverAssetId,
         completedAt: nowIso(),
         errorCode: undefined,
         errorMessage: undefined,
       });
       await recordWalletEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
-      await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, coverAssetId } });
+      await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, previewAssetId: previewAsset?.id, coverAssetId } });
     } catch (error) {
       await updateGenerationJob(jobId, {
         status: 'result_download_failed',

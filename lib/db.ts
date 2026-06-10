@@ -103,6 +103,7 @@ export async function ensureDatabaseSchema() {
           output_format text not null,
           hi3d_task_id text,
           result_asset_id text references file_assets(id) on delete set null,
+          preview_asset_id text references file_assets(id) on delete set null,
           cover_asset_id text references file_assets(id) on delete set null,
           error_code text,
           error_message text,
@@ -111,6 +112,7 @@ export async function ensureDatabaseSchema() {
           updated_at timestamptz not null default now(),
           completed_at timestamptz
         );
+        alter table generation_jobs add column if not exists preview_asset_id text references file_assets(id) on delete set null;
         alter table generation_jobs add column if not exists poll_attempts integer not null default 0;
         create index if not exists generation_jobs_user_id_idx on generation_jobs(user_id);
         create index if not exists generation_jobs_hi3d_task_id_idx on generation_jobs(hi3d_task_id);

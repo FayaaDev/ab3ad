@@ -23,12 +23,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
   }
 
   const resultAsset = job.resultAssetId ? await getFileAsset(job.resultAssetId) : null;
+  const previewAsset = job.previewAssetId ? await getFileAsset(job.previewAssetId) : null;
   const coverAsset = job.coverAssetId ? await getFileAsset(job.coverAssetId) : null;
   const events = await listJobEvents(job.id);
 
     return NextResponse.json({
       job,
       resultUrl: resultAsset ? `/api/generations/${job.id}/download` : null,
+      previewUrl: previewAsset ? `/api/assets/${previewAsset.id}` : null,
       coverUrl: coverAsset ? `/api/assets/${coverAsset.id}` : null,
       events,
     });

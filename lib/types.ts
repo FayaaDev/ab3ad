@@ -57,6 +57,7 @@ export interface GenerationJob {
   outputFormat: OutputFormat;
   hi3dTaskId?: string;
   resultAssetId?: string;
+  previewAssetId?: string;
   coverAssetId?: string;
   errorCode?: string;
   errorMessage?: string;
