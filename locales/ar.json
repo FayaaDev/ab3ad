@@ -31,7 +31,7 @@
     "registerSubmit": "أنشئ الحساب"
   },
   "modelMarquee": {
-    "eyebrow": "أختر على الصورة لأيقاف الشريط المتحرك",
+    "eyebrow": "فنانك المفضل ماهو موجود؟ ارفع صورته الان",
     "title": "بعض اعمالنا",
     "assetBadge": "جاهزة للطباعة",
     "models": [
@@ -56,6 +56,11 @@
         "src": "/api/assets/samples/Mageed.glb"
       },
       {
+        "title": "راشد الماجد",
+        "caption": "السندباد",
+        "src": "/api/assets/samples/Rashid.glb"
+      },
+      {
         "title": "رابح صقر",
         "caption": "موسيقار الخليج",
         "src": "/api/assets/samples/Sager-Ab3ad3d.glb"
@@ -64,6 +69,11 @@
         "title": "طلال مداح",
         "caption": "صوت الارض",
         "src": "/api/assets/samples/Talal-Ab3ad3d.glb"
+      },
+      {
+        "title": "ياسر القحطاني",
+        "caption": "قوس",
+        "src": "/api/assets/samples/Yassir.glb"
       }
     ]
   },

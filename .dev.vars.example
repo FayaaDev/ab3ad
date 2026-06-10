@@ -1,2 +1,0 @@
-# Copy to .dev.vars for `npm run preview` if you want OpenNext/Wrangler to load development env files.
-NEXTJS_ENV=development

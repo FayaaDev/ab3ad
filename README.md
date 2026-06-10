@@ -31,7 +31,7 @@ npm run worker
 npm run dev
 ```
 
-For local development, the app also falls back to the Docker Compose defaults for `DATABASE_URL`, `REDIS_URL`, and `AUTH_SECRET` when they are omitted. R2 is the default storage backend; if you do not want to use R2 locally, set `STORAGE_DRIVER=local`.
+For local development, the app also falls back to the Docker Compose defaults for `DATABASE_URL`, `REDIS_URL`, and `AUTH_SECRET` when they are omitted. R2 is the default storage backend; if you do not want to use R2 locally, set `STORAGE_DRIVER=local` in `.env.local`. With local storage enabled, the sample asset route serves preview GLBs from `data/storage/samples/` and the original bundled sample GLBs from `assets/`.
 
 Open http://localhost:3000, create or sign into an account, then upload images.
 

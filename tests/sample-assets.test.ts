@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import test from 'node:test';
 
 import { getPreviewFilename, getSamplePreviewRoute } from '../lib/preview-glb';
+import { readSampleAsset } from '../lib/sample-asset-storage';
 import { getModelMarqueeModels, resolveSampleAssetUrl, resolveSamplePreviewAssetUrl } from '../lib/sample-assets';
 
-function restoreEnv(key: 'SAMPLE_ASSET_BASE_URL' | 'NEXT_PUBLIC_SAMPLE_ASSET_BASE_URL', value: string | undefined) {
+function restoreEnv(
+  key: 'SAMPLE_ASSET_BASE_URL' | 'NEXT_PUBLIC_SAMPLE_ASSET_BASE_URL' | 'STORAGE_DRIVER' | 'SAMPLE_PREVIEW_FALLBACK_ORIGINAL',
+  value: string | undefined,
+) {
   if (value === undefined) {
     delete process.env[key];
     return;
@@ -57,6 +63,20 @@ test('showcased Mageed sample resolves to the preview route', () => {
   assert.equal(mageedModel.src, '/api/assets/samples/Mageed.preview-v1.glb');
 });
 
+test('new showcased samples resolve to preview routes', () => {
+  const rashidModel = getModelMarqueeModels().find((model) => model.src.includes('Rashid'));
+  const yassirModel = getModelMarqueeModels().find((model) => model.src.includes('Yassir'));
+
+  assert.deepEqual(
+    [rashidModel?.title, rashidModel?.caption, rashidModel?.src],
+    ['راشد', 'راشد', '/api/assets/samples/Rashid.preview-v1.glb'],
+  );
+  assert.deepEqual(
+    [yassirModel?.title, yassirModel?.caption, yassirModel?.src],
+    ['ياسر', 'ياسر', '/api/assets/samples/Yassir.preview-v1.glb'],
+  );
+});
+
 test('non-sample asset URLs are left unchanged', () => {
   const previousBaseUrl = process.env.SAMPLE_ASSET_BASE_URL;
 
@@ -65,5 +85,62 @@ test('non-sample asset URLs are left unchanged', () => {
     assert.equal(resolveSampleAssetUrl('https://cdn.example.com/model.glb'), 'https://cdn.example.com/model.glb');
   } finally {
     restoreEnv('SAMPLE_ASSET_BASE_URL', previousBaseUrl);
+  }
+});
+
+test('local sample route serves bundled original sample assets', async () => {
+  const previousStorageDriver = process.env.STORAGE_DRIVER;
+
+  try {
+    process.env.STORAGE_DRIVER = 'local';
+
+    const { buffer, fallback } = await readSampleAsset('Alisa.glb');
+
+    assert.equal(fallback, false);
+    assert.ok(buffer.byteLength > 0);
+  } finally {
+    restoreEnv('STORAGE_DRIVER', previousStorageDriver);
+  }
+});
+
+test('local sample route falls back from missing preview to bundled original asset', async () => {
+  const previousStorageDriver = process.env.STORAGE_DRIVER;
+  const previousPreviewFallback = process.env.SAMPLE_PREVIEW_FALLBACK_ORIGINAL;
+  const previewPath = path.join(process.cwd(), 'data/storage/samples/Alisa.preview-v1.glb');
+  const backupPath = `${previewPath}.bak`;
+
+  try {
+    process.env.STORAGE_DRIVER = 'local';
+    delete process.env.SAMPLE_PREVIEW_FALLBACK_ORIGINAL;
+    await fs.rename(previewPath, backupPath);
+
+    const { buffer, fallback } = await readSampleAsset('Alisa.preview-v1.glb');
+
+    assert.equal(fallback, true);
+    assert.ok(buffer.byteLength > 0);
+  } finally {
+    await fs.rename(backupPath, previewPath).catch(() => undefined);
+    restoreEnv('STORAGE_DRIVER', previousStorageDriver);
+    restoreEnv('SAMPLE_PREVIEW_FALLBACK_ORIGINAL', previousPreviewFallback);
+  }
+});
+
+test('local sample route serves generated preview assets for new showcased samples', async () => {
+  const previousStorageDriver = process.env.STORAGE_DRIVER;
+
+  try {
+    process.env.STORAGE_DRIVER = 'local';
+
+    const [rashidPreview, yassirPreview] = await Promise.all([
+      readSampleAsset('Rashid.preview-v1.glb'),
+      readSampleAsset('Yassir.preview-v1.glb'),
+    ]);
+
+    assert.equal(rashidPreview.fallback, false);
+    assert.equal(yassirPreview.fallback, false);
+    assert.ok(rashidPreview.buffer.byteLength > 0);
+    assert.ok(yassirPreview.buffer.byteLength > 0);
+  } finally {
+    restoreEnv('STORAGE_DRIVER', previousStorageDriver);
   }
 });

@@ -46,3 +46,5 @@ For object storage deployments, upload the generated `*.preview-v1.glb` files to
 When a Hi3D job completes, `lib/job-runner.ts` stores the original result first, then attempts preview generation from that stored full model buffer. If preview generation succeeds, a `file_assets` row is created and `generation_jobs.preview_asset_id` is set. The job status API exposes it as `previewUrl` while `resultUrl` continues to point to `/api/generations/<jobId>/download` for the full model.
 
 Preview failures are non-fatal: the worker records a `preview_generation_failed` event and still completes the original result download, wallet debit, and full-model availability.
+
+For local development with `STORAGE_DRIVER=local`, the sample asset route keeps serving preview requests from `data/storage/samples/` but reads original sample GLBs from the bundled `assets/` directory. Production continues to serve both originals and previews from the storage backend.
