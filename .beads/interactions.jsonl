@@ -67,3 +67,4 @@
 {"id":"int-a9cfe724","kind":"field_change","created_at":"2026-06-10T14:30:17.19389Z","actor":"FayaaDev","issue_id":"ab3ad-0lw","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-c27b4339","kind":"field_change","created_at":"2026-06-10T14:32:41.328448Z","actor":"FayaaDev","issue_id":"ab3ad-6r9","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-a04cce72","kind":"field_change","created_at":"2026-06-10T14:35:03.394387Z","actor":"FayaaDev","issue_id":"ab3ad-lpn","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-f2c7cd63","kind":"field_change","created_at":"2026-06-10T17:51:35.081747Z","actor":"FayaaDev","issue_id":"ab3ad-2nq","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
