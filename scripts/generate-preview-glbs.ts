@@ -7,10 +7,8 @@ const DEFAULT_SAMPLE_MODELS = [
   'Alisa.glb',
   'dabbrini.glb',
   'Mageed.glb',
-  'Rashid.glb',
   'Sager-Ab3ad3d.glb',
   'Talal-Ab3ad3d.glb',
-  'Yassir.glb',
 ];
 
 function formatBytes(bytes: number) {

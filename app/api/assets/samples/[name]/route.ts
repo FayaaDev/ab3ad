@@ -7,10 +7,8 @@ const ORIGINAL_SAMPLE_ASSETS = [
   'Alisa.glb',
   'dabbrini.glb',
   'Mageed.glb',
-  'Rashid.glb',
   'Sager-Ab3ad3d.glb',
   'Talal-Ab3ad3d.glb',
-  'Yassir.glb',
 ];
 const ALLOWED_ASSETS = new Set([...ORIGINAL_SAMPLE_ASSETS, ...ORIGINAL_SAMPLE_ASSETS.map((name) => getPreviewFilename(name))]);
 
