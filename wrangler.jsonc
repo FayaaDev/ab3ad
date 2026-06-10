@@ -48,7 +48,7 @@
     "MAX_UPLOAD_MB": "15",
     "PREVIEW_GLB_GENERATION": "disabled",
     "DATABASE_SCHEMA": "ab3ad_production",
-    "JOB_QUEUE_MODE": "redis"
+    "JOB_QUEUE_MODE": "inline"
   },
   "observability": {
     "enabled": true,
@@ -103,7 +103,7 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "0b2ddff5a6964170a291c25f0dcc953b",
+          "id": "b7fe6574cd6446399ee4942fdb0ce29a",
           "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
         }
       ]
@@ -147,7 +147,7 @@
         "MAX_UPLOAD_MB": "15",
         "PREVIEW_GLB_GENERATION": "disabled",
         "DATABASE_SCHEMA": "ab3ad_production",
-        "JOB_QUEUE_MODE": "redis"
+        "JOB_QUEUE_MODE": "inline"
       },
       "observability": {
         "enabled": true,
@@ -156,7 +156,7 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "0b2ddff5a6964170a291c25f0dcc953b",
+          "id": "48941da9b03f4167970cbff70e31b17b",
           "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
         }
       ]
@@ -165,7 +165,7 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "0b2ddff5a6964170a291c25f0dcc953b",
+      "id": "48941da9b03f4167970cbff70e31b17b",
       "localConnectionString": "postgres://ab3ad:ab3ad@127.0.0.1:5432/ab3ad"
     }
   ]

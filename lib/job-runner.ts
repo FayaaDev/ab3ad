@@ -13,7 +13,7 @@ import {
   updateGenerationJob,
 } from '@/lib/store';
 import { normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
-import { enqueueJobProcessing } from '@/lib/queue';
+import { enqueueJobProcessing, getQueueMode } from '@/lib/queue';
 import { generatePreviewGlb, getPreviewFilename, getPreviewStorageKey, summarizePreview } from '@/lib/preview-glb';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
 import type { FileAsset } from '@/lib/types';
@@ -62,7 +62,7 @@ async function scheduleNextPoll(jobId: string, pollAttempts: number) {
 
   const delayMs = getNextPollDelay(pollAttempts);
   await addJobEvent({ jobId, eventType: 'poll_rescheduled', payload: { delayMs, pollAttempts } });
-  if (process.env.JOB_QUEUE_MODE === 'inline') {
+  if (getQueueMode() === 'inline') {
     return;
   }
   await enqueueJobProcessing(jobId, { delayMs, dedupeKey: `poll:${jobId}:${pollAttempts}` });

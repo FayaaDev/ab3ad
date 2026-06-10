@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { getHyperdriveConnectionString } from '@/lib/cloudflare';
-import { getRequiredEnv } from '@/lib/env';
+import { getRequiredEnv, getRuntimeEnvValue } from '@/lib/env';
 
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
@@ -10,7 +10,7 @@ function requireDatabaseUrl() {
 }
 
 function getDatabaseSchema() {
-  const schema = process.env.DATABASE_SCHEMA;
+  const schema = getRuntimeEnvValue('DATABASE_SCHEMA');
   if (!schema) {
     return null;
   }
@@ -29,8 +29,8 @@ function createPool() {
   const schema = getDatabaseSchema();
   return new Pool({
     connectionString,
-    ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-    max: Number(process.env.DATABASE_POOL_MAX ?? '10') || 10,
+    ssl: getRuntimeEnvValue('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : undefined,
+    max: Number(getRuntimeEnvValue('DATABASE_POOL_MAX') || '10') || 10,
     idleTimeoutMillis: 1_000,
     connectionTimeoutMillis: 5_000,
     allowExitOnIdle: true,

@@ -2,7 +2,7 @@ import type { ConnectionOptions } from 'bullmq';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { getAppCloudflareContext } from '@/lib/cloudflare';
-import { getRequiredEnv } from '@/lib/env';
+import { getRequiredEnv, getRuntimeEnvValue } from '@/lib/env';
 
 export const generationQueueName = process.env.JOB_QUEUE_NAME ?? 'ab3ad-generation-jobs';
 
@@ -11,7 +11,7 @@ let queue: Queue | null = null;
 type QueueMode = 'redis' | 'inline';
 
 export function getQueueMode(): QueueMode {
-  const mode = process.env.JOB_QUEUE_MODE ?? 'redis';
+  const mode = getRuntimeEnvValue('JOB_QUEUE_MODE') || 'redis';
   if (mode === 'redis' || mode === 'inline') {
     return mode;
   }
