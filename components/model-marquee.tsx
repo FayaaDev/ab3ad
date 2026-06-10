@@ -61,6 +61,7 @@ export function ModelMarquee({ models }: { models: PreviewModel[] }) {
       <Script
         type="module"
         src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
+        crossOrigin="anonymous"
         strategy="afterInteractive"
       />
       <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-2 py-4 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">

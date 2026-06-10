@@ -101,6 +101,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
       <Script
         type="module"
         src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
+        crossOrigin="anonymous"
         strategy="afterInteractive"
       />
       <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
