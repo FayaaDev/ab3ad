@@ -71,7 +71,7 @@ export function ModelMarquee({ models }: { models: PreviewModel[] }) {
             {messages.modelMarquee.title}
           </h2>
         </div>
-        <Marquee pauseOnHover className="[--duration:80s] [--gap:1rem]" repeat={4}>
+        <Marquee pauseOnHover className="[--duration:80s] [--gap:1rem]">
           {models.map((model, index) => (
             <PreviewCard key={`${model.title}-${index}`} {...model} />
           ))}

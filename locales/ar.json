@@ -132,6 +132,11 @@
     "noActivity": "لا توجد عمليات بعد.",
     "loadError": "تعذر تحميل الرصيد."
   },
+  "profilePage": {
+    "eyebrow": "الملف الشخصي",
+    "title": "رصيدك وسجل العمليات في صفحة مستقلة.",
+    "description": "لوحتك الخاصة لأستعراض عملياتك ورصيدك"
+  },
   "inlineGenerationProgress": {
     "eyebrow": "تقدّم التوليد",
     "loading": "جارٍ بدء التوليد...",

@@ -76,21 +76,21 @@ textarea {
 
 @keyframes marquee {
   from {
-    transform: translateX(0%);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateX(calc(-50% - (var(--gap) / 2)));
+    transform: translate3d(-50%, 0, 0);
   }
 }
 
 @keyframes marquee-vertical {
   from {
-    transform: translateY(0%);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateY(calc(-50% - (var(--gap) / 2)));
+    transform: translate3d(0, -50%, 0);
   }
 }
 
