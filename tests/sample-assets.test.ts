@@ -48,6 +48,15 @@ test('sample preview routes use versioned GLB names', () => {
   assert.equal(getSamplePreviewRoute('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.preview-v1.glb');
 });
 
+test('showcased Mageed sample resolves to the preview route', () => {
+  const mageedModel = getModelMarqueeModels().find((model) => model.src.includes('Mageed'));
+
+  assert.ok(mageedModel);
+  assert.equal(mageedModel.title, 'عبدالمجيد عبدالله');
+  assert.equal(mageedModel.caption, 'أمير الطرب');
+  assert.equal(mageedModel.src, '/api/assets/samples/Mageed.preview-v1.glb');
+});
+
 test('non-sample asset URLs are left unchanged', () => {
   const previousBaseUrl = process.env.SAMPLE_ASSET_BASE_URL;
 

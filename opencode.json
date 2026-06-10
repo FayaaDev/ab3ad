@@ -11,6 +11,11 @@
   },
   "model": "openai/gpt-5.4",
   "small_model": "openai/gpt-5.4-mini",
+  "skills": {
+    "paths": [
+      ".opencode/skills"
+    ]
+  },
   "command": {
     "finish up": {
       "description": "End-of-day cleanup workflow",

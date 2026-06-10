@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getOriginalFilenameForPreview, getPreviewFilename, isPreviewFilename } from '@/lib/preview-glb';
 import { readStorageObject } from '@/lib/storage';
 
-const ORIGINAL_SAMPLE_ASSETS = ['Abdo-Ab3ad3d.glb', 'Alisa.glb', 'dabbrini.glb', 'Sager-Ab3ad3d.glb', 'Talal-Ab3ad3d.glb'];
+const ORIGINAL_SAMPLE_ASSETS = ['Abdo-Ab3ad3d.glb', 'Alisa.glb', 'dabbrini.glb', 'Mageed.glb', 'Sager-Ab3ad3d.glb', 'Talal-Ab3ad3d.glb'];
 const ALLOWED_ASSETS = new Set([...ORIGINAL_SAMPLE_ASSETS, ...ORIGINAL_SAMPLE_ASSETS.map((name) => getPreviewFilename(name))]);
 
 async function readSampleAsset(name: string) {

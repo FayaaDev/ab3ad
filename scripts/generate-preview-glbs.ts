@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { generatePreviewGlb, getPreviewFilename, summarizePreview } from '@/lib/preview-glb';
 
-const DEFAULT_SAMPLE_MODELS = ['Abdo-Ab3ad3d.glb', 'Alisa.glb', 'dabbrini.glb', 'Sager-Ab3ad3d.glb', 'Talal-Ab3ad3d.glb'];
+const DEFAULT_SAMPLE_MODELS = ['Abdo-Ab3ad3d.glb', 'Alisa.glb', 'dabbrini.glb', 'Mageed.glb', 'Sager-Ab3ad3d.glb', 'Talal-Ab3ad3d.glb'];
 
 function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
