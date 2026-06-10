@@ -21,7 +21,9 @@ export function resolveSampleAssetUrl(src: string) {
 }
 
 export function resolveSamplePreviewAssetUrl(src: string) {
-  return resolveSampleAssetUrl(getSamplePreviewRoute(src));
+  // Keep preview requests on the app route so missing preview files can fall
+  // back to the original sample asset instead of breaking external hosts.
+  return getSamplePreviewRoute(src);
 }
 
 export function getModelMarqueeModels() {

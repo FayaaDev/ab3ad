@@ -35,8 +35,8 @@ test('sample asset URLs can be rewritten to a public asset host', () => {
     process.env.SAMPLE_ASSET_BASE_URL = 'https://assets.example.com/samples/';
 
     assert.equal(resolveSampleAssetUrl('/api/assets/samples/Alisa.glb'), 'https://assets.example.com/samples/Alisa.glb');
-    assert.equal(resolveSamplePreviewAssetUrl('/api/assets/samples/Alisa.glb'), 'https://assets.example.com/samples/Alisa.preview-v1.glb');
-    assert.equal(getModelMarqueeModels()[0]?.src.startsWith('https://assets.example.com/samples/'), true);
+    assert.equal(resolveSamplePreviewAssetUrl('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.preview-v1.glb');
+    assert.equal(getModelMarqueeModels()[0]?.src.startsWith('/api/assets/samples/'), true);
     assert.equal(getModelMarqueeModels()[0]?.src.endsWith('.preview-v1.glb'), true);
   } finally {
     restoreEnv('SAMPLE_ASSET_BASE_URL', previousBaseUrl);
