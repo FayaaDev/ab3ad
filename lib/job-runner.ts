@@ -12,7 +12,7 @@ import {
   recordWalletEvent,
   updateGenerationJob,
 } from '@/lib/store';
-import { normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
+import { getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryTask, submitTask } from '@/lib/hi3d-client';
 import { enqueueJobProcessing, getQueueMode } from '@/lib/queue';
 import { generatePreviewGlb, getPreviewFilename, getPreviewStorageKey, summarizePreview } from '@/lib/preview-glb';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
@@ -20,15 +20,19 @@ import type { FileAsset } from '@/lib/types';
 import { mapHi3DStatus, nowIso } from '@/lib/utils';
 
 const realPollSchedule = [10_000, 20_000, 30_000, 60_000, 120_000, 120_000, 120_000, 120_000];
-const mockPollSchedule = [250, 500, 1_000, 2_000, 5_000];
+
+function getMockPollSchedule() {
+  const intervalMs = Math.max(250, Math.ceil(getMockHi3DDurationMs() / 6 / 250) * 250);
+  return Array.from({ length: 8 }, () => intervalMs);
+}
 
 export function getNextPollDelay(pollAttempts = 0) {
-  const schedule = process.env.HI3D_MODE === 'mock' ? mockPollSchedule : realPollSchedule;
+  const schedule = process.env.HI3D_MODE === 'mock' ? getMockPollSchedule() : realPollSchedule;
   return schedule[Math.min(pollAttempts, schedule.length - 1)];
 }
 
 function getMaxPollAttempts() {
-  const schedule = process.env.HI3D_MODE === 'mock' ? mockPollSchedule : realPollSchedule;
+  const schedule = process.env.HI3D_MODE === 'mock' ? getMockPollSchedule() : realPollSchedule;
   return Number(process.env.HI3D_MAX_POLL_ATTEMPTS ?? String(schedule.length + 2)) || schedule.length + 2;
 }
 

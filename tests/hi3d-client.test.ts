@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { getHi3DResult, getHi3DStatus, getHi3DTaskId } from '../lib/hi3d-contract';
-import { HI3D_LOW_BALANCE_MESSAGE, normalizeHi3DErrorMessage, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
+import { HI3D_LOW_BALANCE_MESSAGE, getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
+import { getNextPollDelay } from '../lib/job-runner';
 import type { FileAsset, GenerationJob } from '../lib/types';
 
 const originalFetch = global.fetch;
@@ -111,6 +112,36 @@ test('submitTask uses the documented auth and submit contract', async () => {
     if (assetPath) {
       await fs.rm(assetPath, { force: true });
     }
+  }
+});
+
+test('mock Hi3D duration is configurable and defaults safely', () => {
+  const previousEnv = { ...process.env };
+  try {
+    delete process.env.HI3D_MOCK_DURATION_MS;
+    assert.equal(getMockHi3DDurationMs(), 1500);
+
+    process.env.HI3D_MOCK_DURATION_MS = '60000';
+    assert.equal(getMockHi3DDurationMs(), 60000);
+
+    process.env.HI3D_MOCK_DURATION_MS = '0';
+    assert.equal(getMockHi3DDurationMs(), 1500);
+  } finally {
+    restoreEnv(previousEnv);
+  }
+});
+
+test('mock poll cadence stretches with configured duration', () => {
+  const previousEnv = { ...process.env };
+  try {
+    process.env.HI3D_MODE = 'mock';
+    process.env.HI3D_MOCK_DURATION_MS = '60000';
+    assert.equal(getNextPollDelay(1), 10000);
+
+    process.env.HI3D_MOCK_DURATION_MS = '1500';
+    assert.equal(getNextPollDelay(1), 250);
+  } finally {
+    restoreEnv(previousEnv);
   }
 });
 

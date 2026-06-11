@@ -35,6 +35,8 @@ For local development, the app also falls back to the Docker Compose defaults fo
 
 Open http://localhost:3000, create or sign into an account, then upload images.
 
+To test long-running mock generations without spending Ab3ad3d tokens, set `HI3D_MODE=mock` and `HI3D_MOCK_DURATION_MS=60000` in `.env.local` before starting the app and worker.
+
 ## Production readiness notes
 
 - `HI3D_MODE=mock` is only for local/dev. Set `HI3D_MODE=real` in production for Ab3ad3d processing.

@@ -5,6 +5,8 @@ import { v4 as uuid } from 'uuid';
 
 loadLocalEnv();
 
+const defaultAdminSeedPassword = 'replace-with-a-strong-password';
+
 async function main() {
   const email = process.env.ADMIN_SEED_EMAIL;
   const password = process.env.ADMIN_SEED_PASSWORD;
@@ -12,6 +14,9 @@ async function main() {
 
   if (!email || !password) {
     throw new Error('Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD before running npm run seed-admin.');
+  }
+  if (password === defaultAdminSeedPassword) {
+    throw new Error('Replace the default ADMIN_SEED_PASSWORD placeholder before running npm run seed-admin.');
   }
 
   const existing = await getUserByEmail(email);

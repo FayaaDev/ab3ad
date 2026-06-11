@@ -151,9 +151,15 @@ export function ProfilePanel({ userName }: { userName: string }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <a className={buttonVariants({ size: 'sm', variant: 'ghost' })} href={`/jobs/${job.id}`}>
-                      {profileMessages.viewJob}
-                    </a>
+                    <span
+                      aria-disabled="true"
+                      className={cn(
+                        buttonVariants({ size: 'sm', variant: 'ghost' }),
+                        'cursor-not-allowed border-white/10 bg-white/5 text-[color:var(--muted)] opacity-60 hover:bg-white/5 hover:text-[color:var(--muted)]',
+                      )}
+                    >
+                      {job.status === 'completed' && job.resultUrl ? formatStatusLabel(job.status) : messages.uploadForm.generating}
+                    </span>
                     {job.status === 'completed' && job.resultUrl ? (
                       <a className={buttonVariants({ size: 'sm' })} href={job.resultUrl}>
                         {profileMessages.download}

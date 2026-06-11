@@ -8,6 +8,7 @@ import { sleep } from '@/lib/utils';
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 const mockTasks = new Map<string, { createdAt: number }>();
+const defaultMockDurationMs = 1_500;
 
 export const HI3D_LOW_BALANCE_MESSAGE = 'please Credit your account to be able to upload images';
 
@@ -18,6 +19,11 @@ export function resetHi3DClientState() {
 
 function isMockMode() {
   return (process.env.HI3D_MODE ?? 'mock') === 'mock';
+}
+
+export function getMockHi3DDurationMs() {
+  const configuredDuration = Number(process.env.HI3D_MOCK_DURATION_MS ?? String(defaultMockDurationMs));
+  return configuredDuration > 0 ? configuredDuration : defaultMockDurationMs;
 }
 
 function getFetchTimeoutMs() {
@@ -185,13 +191,17 @@ export async function queryTask(taskId: string): Promise<Hi3DQueryResponse> {
   if (isMockMode()) {
     const task = mockTasks.get(taskId);
     const age = Date.now() - (task?.createdAt ?? Date.now());
-    if (age < 500) {
+    const mockDurationMs = getMockHi3DDurationMs();
+    const createdThresholdMs = Math.round(mockDurationMs * 0.2);
+    const queueingThresholdMs = Math.round(mockDurationMs * 0.45);
+
+    if (age < createdThresholdMs) {
       return { status: 'created', raw: { mock: true } };
     }
-    if (age < 1000) {
+    if (age < queueingThresholdMs) {
       return { status: 'queueing', raw: { mock: true } };
     }
-    if (age < 1500) {
+    if (age < mockDurationMs) {
       return { status: 'processing', raw: { mock: true } };
     }
     return {
