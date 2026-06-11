@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { CreditCard, Download, Loader2 } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import { formatDateTime, formatEventLabel, formatNumber, formatStatusLabel } from '@/lib/locale';
 import { messages } from '@/lib/messages';
@@ -48,10 +50,12 @@ function statusTone(status: string) {
 
 export function ProfilePanel({ userName }: { userName: string }) {
   const profileMessages = messages.profilePanel;
+  const router = useRouter();
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [jobs, setJobs] = useState<ProfileJob[]>([]);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [retryingJobId, setRetryingJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
@@ -105,6 +109,37 @@ export function ProfilePanel({ userName }: { userName: string }) {
       window.removeEventListener('wallet:refresh', handleWalletRefresh);
     };
   }, [loadProfile]);
+
+  const retryJob = useCallback(async (jobId: string) => {
+    setRetryingJobId(jobId);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/generations/${jobId}/retry`, {
+        method: 'POST',
+      });
+      const body = (await response.json()) as { jobId?: string; resultUrl?: string | null; error?: string };
+
+      if (response.status === 401) {
+        window.location.href = '/login?next=/profile';
+        return;
+      }
+      if (!response.ok || !body.jobId) {
+        throw new Error(body.error || profileMessages.retryFailed);
+      }
+
+      if (body.resultUrl || body.jobId === jobId) {
+        await loadProfile();
+        return;
+      }
+
+      router.push(`/jobs/${body.jobId}`);
+    } catch (retryError) {
+      setError(retryError instanceof Error ? retryError.message : profileMessages.retryFailed);
+    } finally {
+      setRetryingJobId((current) => (current === jobId ? null : current));
+    }
+  }, [loadProfile, profileMessages.retryFailed, router]);
 
   return (
     <section className="overflow-hidden rounded-[2.4rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_30px_100px_rgba(0,0,0,0.26)]">
@@ -182,6 +217,12 @@ export function ProfilePanel({ userName }: { userName: string }) {
                     >
                       {formatStatusLabel(job.status)}
                     </span>
+                    {!job.resultUrl && ['failed', 'result_download_failed'].includes(job.status) ? (
+                      <Button disabled={retryingJobId === job.id} onClick={() => void retryJob(job.id)} size="sm" type="button" variant="secondary">
+                        {retryingJobId === job.id ? <Loader2 className="size-4 animate-spin" /> : null}
+                        {retryingJobId === job.id ? profileMessages.retrying : profileMessages.retry}
+                      </Button>
+                    ) : null}
                     {job.status === 'completed' && job.resultUrl ? (
                       <a className={buttonVariants({ size: 'sm' })} href={job.resultUrl}>
                         {profileMessages.download}

@@ -5,9 +5,11 @@ import { getAppCloudflareContext } from '@/lib/cloudflare';
 import { getPool } from '@/lib/db';
 import {
   addJobEvent,
+  createGenerationJob,
   createFileAsset,
   findGenerationJobByTaskId,
   getFileAsset,
+  getGenerationJob,
   getJobWithAssets,
   recordWalletEvent,
   updateGenerationJob,
@@ -213,6 +215,60 @@ export async function scheduleActiveJobRefresh(job: { id: string; status: string
   return true;
 }
 
+export async function retryFailedJob(jobId: string) {
+  const job = await getGenerationJob(jobId);
+  if (!job) {
+    throw new Error('Job not found.');
+  }
+  if (!['failed', 'result_download_failed'].includes(job.status)) {
+    throw new Error('Only failed jobs can be retried.');
+  }
+
+  if (job.hi3dTaskId && !job.resultAssetId) {
+    try {
+      const query = await queryTask(job.hi3dTaskId);
+      const nextPollAttempts = (job.pollAttempts ?? 0) + 1;
+      const updatedJob = await updateGenerationJob(jobId, {
+        status: mapHi3DStatus(query.status),
+        errorCode: query.errorCode,
+        errorMessage: query.errorMessage,
+        pollAttempts: nextPollAttempts,
+      });
+      await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
+
+      if (query.status === 'success' && query.result) {
+        await addJobEvent({ jobId, eventType: 'job_retried', payload: { mode: 'recover_result' } });
+        await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl, false);
+        return (await getGenerationJob(jobId)) ?? updatedJob;
+      }
+
+      if (query.status !== 'failed') {
+        await addJobEvent({ jobId, eventType: 'job_retried', payload: { mode: 'resume_polling' } });
+        await scheduleNextPoll(jobId, nextPollAttempts);
+        return updatedJob;
+      }
+    } catch (error) {
+      await addRefreshFailureEvent(jobId, error).catch(() => undefined);
+    }
+  }
+
+  const retryJob = await createGenerationJob({
+    userId: job.userId,
+    assetIds: job.assetIds,
+    mode: job.mode,
+    status: 'queued',
+    model: job.model,
+    resolution: job.resolution,
+    faceCount: job.faceCount,
+    pbr: job.pbr,
+    outputFormat: job.outputFormat,
+  });
+
+  await addJobEvent({ jobId: retryJob.id, eventType: 'job_retried', payload: { retriedFrom: job.id } });
+  await enqueueJobProcessing(retryJob.id);
+  return retryJob;
+}
+
 function shouldGeneratePreviewGlb() {
   if (process.env.PREVIEW_GLB_GENERATION === 'enabled') {
     return true;
@@ -264,7 +320,7 @@ async function createPreviewAssetForResult(jobId: string, userId: string, modelA
   }
 }
 
-async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string) {
+async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string, chargeWallet = true) {
   await withJobLock(jobId, async () => {
     const latest = await getJobWithAssets(jobId);
     if (!latest.job) {
@@ -325,7 +381,9 @@ async function downloadResult(jobId: string, modelUrl: string, coverUrl?: string
         errorCode: undefined,
         errorMessage: undefined,
       });
-      await recordWalletEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
+      if (chargeWallet) {
+        await recordWalletEvent({ jobId, userId: latest.job.userId, eventType: 'generation_completed', creditDelta: -1 });
+      }
       await addJobEvent({ jobId, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, previewAssetId: previewAsset?.id, coverAssetId } });
     } catch (error) {
       await updateGenerationJob(jobId, {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AuthError, requireCurrentUser } from '@/lib/auth';
-import { addJobEvent, createGenerationJob, getGenerationJob } from '@/lib/store';
-import { enqueueJobProcessing } from '@/lib/queue';
+import { retryFailedJob } from '@/lib/job-runner';
+import { getGenerationJob } from '@/lib/store';
 
 export const runtime = 'nodejs';
 
@@ -11,32 +11,20 @@ export async function POST(_: Request, { params }: { params: Promise<{ jobId: st
     const { jobId } = await params;
     const job = await getGenerationJob(jobId);
 
-  if (!job) {
-    return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
-  }
-  if (job.userId !== user.id) {
-    return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-  }
-  if (!['failed', 'result_download_failed'].includes(job.status)) {
-    return NextResponse.json({ error: 'Only failed jobs can be retried.' }, { status: 400 });
-  }
+    if (!job) {
+      return NextResponse.json({ error: 'Job not found.' }, { status: 404 });
+    }
+    if (job.userId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
 
-  const retryJob = await createGenerationJob({
-    userId: job.userId,
-    assetIds: job.assetIds,
-    mode: job.mode,
-    status: 'queued',
-    model: job.model,
-    resolution: job.resolution,
-    faceCount: job.faceCount,
-    pbr: job.pbr,
-    outputFormat: job.outputFormat,
-  });
+    const retryJob = await retryFailedJob(job.id);
 
-  await addJobEvent({ jobId: retryJob.id, eventType: 'job_retried', payload: { retriedFrom: job.id } });
-  await enqueueJobProcessing(retryJob.id);
-
-    return NextResponse.json({ jobId: retryJob.id, status: retryJob.status });
+    return NextResponse.json({
+      jobId: retryJob.id,
+      status: retryJob.status,
+      resultUrl: retryJob.resultAssetId ? `/api/generations/${retryJob.id}/download` : null,
+    });
   } catch (error) {
     const status = error instanceof AuthError ? error.status : 400;
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Retry failed.' }, { status });

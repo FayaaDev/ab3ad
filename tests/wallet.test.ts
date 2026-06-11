@@ -1,20 +1,45 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { after, test } from 'node:test';
 import { v4 as uuid } from 'uuid';
 import { closePoolForTests, getPool } from '../lib/db';
+import { retryFailedJob } from '../lib/job-runner';
+import { readStorageObject } from '../lib/storage';
 import {
   createFileAsset,
   createGenerationJob,
   createUserAccount,
+  getFileAsset,
+  getGenerationJob,
   getWalletBalance,
   listWalletEvents,
   recordWalletEvent,
 } from '../lib/store';
+import { submitTask } from '../lib/hi3d-client';
 import { assertCanStartGeneration } from '../lib/wallet';
 
 Object.assign(process.env, { NODE_ENV: 'test' });
 
 const createdUserIds: string[] = [];
+const originalFetch = global.fetch;
+
+function restoreEnv(previousEnv: NodeJS.ProcessEnv) {
+  for (const key of Object.keys(process.env)) {
+    if (!(key in previousEnv)) {
+      delete process.env[key];
+    }
+  }
+
+  for (const [key, value] of Object.entries(previousEnv)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+}
 
 async function createTestUser(prefix = 'wallet') {
   const id = uuid();
@@ -120,4 +145,83 @@ test('failed jobs do not debit the wallet ledger', async () => {
 
   assert.equal(await getWalletBalance(user.id), 3);
   assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_completed').length, 0);
+});
+
+test('retry can recover a failed result download into a downloadable glb', async () => {
+  const previousEnv = { ...process.env };
+  const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-retry-'));
+
+  try {
+    process.env.HI3D_MODE = 'mock';
+    process.env.HI3D_MOCK_DURATION_MS = '1';
+    process.env.PREVIEW_GLB_GENERATION = 'disabled';
+    process.env.STORAGE_DRIVER = 'local';
+    process.env.STORAGE_ROOT = storageRoot;
+    process.env.HI3D_ALLOWED_RESULT_HOSTS = 'dummyimage.com';
+
+    global.fetch = async (input: string | URL | Request) => {
+      const url = String(input instanceof Request ? input.url : input);
+      assert.match(url, /^https:\/\/dummyimage\.com\//);
+      return new Response(Buffer.from('cover-image'), {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+      });
+    };
+
+    const user = await createTestUser('recover');
+    await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 2 });
+
+    const asset = await createTestAsset(user.id);
+    await fs.mkdir(path.dirname(path.join(storageRoot, asset.storageKey)), { recursive: true });
+    await fs.writeFile(path.join(storageRoot, asset.storageKey), Buffer.from('source-image'));
+
+    const queuedJob = await createGenerationJob({
+      userId: user.id,
+      assetIds: [asset.id],
+      mode: 'single_image',
+      status: 'queued',
+      model: 'hitem3dv2.1',
+      resolution: '1536pro',
+      faceCount: '800000',
+      pbr: true,
+      outputFormat: 'glb',
+    });
+    const task = await submitTask(queuedJob, [asset]);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const failedJob = await createGenerationJob({
+      userId: user.id,
+      assetIds: [asset.id],
+      mode: 'single_image',
+      status: 'result_download_failed',
+      model: queuedJob.model,
+      resolution: queuedJob.resolution,
+      faceCount: queuedJob.faceCount,
+      pbr: queuedJob.pbr,
+      outputFormat: queuedJob.outputFormat,
+      hi3dTaskId: task.taskId,
+      errorCode: 'result_download_failed',
+      errorMessage: 'Timed out downloading result',
+    });
+
+    const retriedJob = await retryFailedJob(failedJob.id);
+    assert.equal(retriedJob.id, failedJob.id);
+    assert.equal(retriedJob.status, 'completed');
+    assert.ok(retriedJob.resultAssetId);
+
+    const storedJob = await getGenerationJob(failedJob.id);
+    assert.equal(storedJob?.status, 'completed');
+    assert.ok(storedJob?.completedAt);
+
+    const resultAsset = await getFileAsset(storedJob!.resultAssetId!);
+    assert.ok(resultAsset);
+    assert.equal((await readStorageObject(resultAsset!.storageKey)).toString('utf8'), 'mock-glb-data');
+
+    assert.equal(await getWalletBalance(user.id), 2);
+    assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_completed').length, 0);
+  } finally {
+    restoreEnv(previousEnv);
+    global.fetch = originalFetch;
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
 });
