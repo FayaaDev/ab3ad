@@ -1,3 +1,4 @@
+import freelanceLogo from '@/assets/logo/freelance.png';
 import { ModelMarquee } from '@/components/model-marquee';
 import { UploadForm } from '@/components/upload-form';
 import { getCurrentUser } from '@/lib/auth';
@@ -29,6 +30,18 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      <footer className="flex justify-end pb-2">
+        <a
+          href="https://freelance.sa"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Visit freelance.sa"
+          className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:bg-white/10"
+        >
+          <img src={freelanceLogo.src} alt="freelance.sa" className="h-10 w-10" />
+        </a>
+      </footer>
     </div>
   );
 }

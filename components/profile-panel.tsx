@@ -6,7 +6,7 @@ import { CreditCard, Download, Loader2 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { formatDateTime, formatEventLabel, formatNumber, formatStatusLabel } from '@/lib/locale';
 import { messages } from '@/lib/messages';
-import { cn } from '@/lib/utils';
+import { cn, isActiveGenerationStatus } from '@/lib/utils';
 
 type WalletEvent = {
   id: string;
@@ -81,6 +81,18 @@ export function ProfilePanel({ userName }: { userName: string }) {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (!jobs.some((job) => isActiveGenerationStatus(job.status))) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadProfile();
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [jobs, loadProfile]);
 
   useEffect(() => {
     function handleWalletRefresh() {
@@ -168,7 +180,7 @@ export function ProfilePanel({ userName }: { userName: string }) {
                         'cursor-not-allowed border-white/10 bg-white/5 text-[color:var(--muted)] opacity-60 hover:bg-white/5 hover:text-[color:var(--muted)]',
                       )}
                     >
-                      {job.status === 'completed' && job.resultUrl ? formatStatusLabel(job.status) : messages.uploadForm.generating}
+                      {formatStatusLabel(job.status)}
                     </span>
                     {job.status === 'completed' && job.resultUrl ? (
                       <a className={buttonVariants({ size: 'sm' })} href={job.resultUrl}>

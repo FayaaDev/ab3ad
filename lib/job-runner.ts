@@ -17,7 +17,7 @@ import { enqueueJobProcessing, getQueueMode } from '@/lib/queue';
 import { generatePreviewGlb, getPreviewFilename, getPreviewStorageKey, summarizePreview } from '@/lib/preview-glb';
 import { fetchToStorage, saveStorageObject } from '@/lib/storage';
 import type { FileAsset } from '@/lib/types';
-import { mapHi3DStatus, nowIso } from '@/lib/utils';
+import { isActiveGenerationStatus, mapHi3DStatus, nowIso } from '@/lib/utils';
 
 const realPollSchedule = [10_000, 20_000, 30_000, 60_000, 120_000, 120_000, 120_000, 120_000];
 
@@ -34,6 +34,27 @@ export function getNextPollDelay(pollAttempts = 0) {
 function getMaxPollAttempts() {
   const schedule = process.env.HI3D_MODE === 'mock' ? getMockPollSchedule() : realPollSchedule;
   return Number(process.env.HI3D_MAX_POLL_ATTEMPTS ?? String(schedule.length + 2)) || schedule.length + 2;
+}
+
+function getQueryRefreshMinAgeMs() {
+  return Number(process.env.HI3D_QUERY_REFRESH_MIN_AGE_MS ?? '15000') || 15_000;
+}
+
+export function shouldRefreshActiveJob(job: { status: string; updatedAt: string; hi3dTaskId?: string; resultAssetId?: string }) {
+  if (job.resultAssetId || !isActiveGenerationStatus(job.status)) {
+    return false;
+  }
+  if (job.status !== 'queued' && !job.hi3dTaskId) {
+    return false;
+  }
+
+  const updatedAtMs = Date.parse(job.updatedAt);
+  return Number.isNaN(updatedAtMs) || Date.now() - updatedAtMs >= getQueryRefreshMinAgeMs();
+}
+
+async function addRefreshFailureEvent(jobId: string, error: unknown) {
+  const errorMessage = normalizeHi3DErrorMessage(error instanceof Error ? error.message : 'Unknown Hi3D refresh error');
+  await addJobEvent({ jobId, eventType: 'hi3d_refresh_failed', payload: { errorMessage } });
 }
 
 async function withJobLock<T>(jobId: string, work: () => Promise<T>) {
@@ -135,6 +156,61 @@ export async function processJob(jobId: string) {
     await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: 'hi3d_request_failed', errorMessage } });
     throw error;
   }
+}
+
+export async function refreshActiveJobFromHi3D(jobId: string) {
+  const { job } = await getJobWithAssets(jobId);
+  if (!job || job.status === 'completed' || job.resultAssetId || !isActiveGenerationStatus(job.status)) {
+    return;
+  }
+
+  try {
+    if (job.status === 'queued') {
+      await processJob(jobId);
+      return;
+    }
+
+    if (!job.hi3dTaskId) {
+      return;
+    }
+
+    const query = await queryTask(job.hi3dTaskId);
+    const nextPollAttempts = (job.pollAttempts ?? 0) + 1;
+    await updateGenerationJob(jobId, {
+      status: mapHi3DStatus(query.status),
+      errorCode: query.errorCode,
+      errorMessage: query.errorMessage,
+      pollAttempts: nextPollAttempts,
+    });
+    await addJobEvent({ jobId, eventType: `hi3d_${query.status}`, payload: query.raw });
+
+    if (query.status === 'success' && query.result) {
+      await downloadResult(jobId, query.result.modelUrl, query.result.coverUrl);
+      return;
+    }
+
+    if (query.status === 'failed') {
+      await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: query.errorCode, errorMessage: query.errorMessage } });
+    }
+  } catch (error) {
+    await addRefreshFailureEvent(jobId, error).catch(() => undefined);
+  }
+}
+
+export async function scheduleActiveJobRefresh(job: { id: string; status: string; updatedAt: string; hi3dTaskId?: string; resultAssetId?: string }) {
+  if (!shouldRefreshActiveJob(job)) {
+    return false;
+  }
+
+  const work = refreshActiveJobFromHi3D(job.id);
+  const ctx = getAppCloudflareContext()?.ctx;
+  if (ctx) {
+    ctx.waitUntil(work);
+    return true;
+  }
+
+  await work;
+  return true;
 }
 
 function shouldGeneratePreviewGlb() {

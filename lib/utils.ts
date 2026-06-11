@@ -48,6 +48,12 @@ export function mapHi3DStatus(status: 'created' | 'queueing' | 'processing' | 's
   }
 }
 
+export const activeGenerationStatuses = ['queued', 'submitted_to_hi3d', 'hi3d_created', 'hi3d_queueing', 'hi3d_processing', 'downloading_result'] as const;
+
+export function isActiveGenerationStatus(status: string) {
+  return activeGenerationStatuses.includes(status as (typeof activeGenerationStatuses)[number]);
+}
+
 export async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }

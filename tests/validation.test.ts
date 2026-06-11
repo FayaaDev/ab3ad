@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mapHi3DStatus } from '../lib/utils';
+import { isActiveGenerationStatus, mapHi3DStatus } from '../lib/utils';
 import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, adminCreditGrantSchema, normalizeHi3DFaceCount, qualityToResolution, validateAssetsForMode } from '../lib/validation';
 import type { FileAsset } from '../lib/types';
 
@@ -45,6 +45,13 @@ test('Hi3D statuses map to internal states', () => {
   assert.equal(mapHi3DStatus('processing'), 'hi3d_processing');
   assert.equal(mapHi3DStatus('success'), 'downloading_result');
   assert.equal(mapHi3DStatus('failed'), 'failed');
+});
+
+test('active generation statuses include query-refreshable states', () => {
+  assert.equal(isActiveGenerationStatus('hi3d_processing'), true);
+  assert.equal(isActiveGenerationStatus('downloading_result'), true);
+  assert.equal(isActiveGenerationStatus('completed'), false);
+  assert.equal(isActiveGenerationStatus('failed'), false);
 });
 
 test('admin wallet adjustments accept signed integers except zero', () => {

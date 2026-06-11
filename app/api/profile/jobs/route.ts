@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { AuthError, requireCurrentUser } from '@/lib/auth';
+import { scheduleActiveJobRefresh } from '@/lib/job-runner';
 import { getFileAssets, listGenerationJobsForUser } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -9,9 +10,11 @@ export async function GET() {
   try {
     const user = await requireCurrentUser();
     const jobs = await listGenerationJobsForUser(user.id, 12);
+    await Promise.all(jobs.map((job) => scheduleActiveJobRefresh(job)));
+    const currentJobs = await listGenerationJobsForUser(user.id, 12);
 
     const jobsWithAssets = await Promise.all(
-      jobs.map(async (job) => {
+      currentJobs.map(async (job) => {
         const assets = await getFileAssets(job.assetIds);
         const sourceAsset = assets[0] ?? null;
 

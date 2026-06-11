@@ -277,6 +277,7 @@
     "hi3d_queueing": "المهمة في طابور Ab3ad3d",
     "hi3d_processing": "Ab3ad3d يعالج النموذج",
     "hi3d_success": "أعاد Ab3ad3d النتيجة",
+    "hi3d_refresh_failed": "فشل تحديث حالة Ab3ad3d",
     "job_failed": "فشلت المهمة",
     "download_started": "بدأ تنزيل النتيجة",
     "download_failed": "فشل تنزيل النتيجة",
