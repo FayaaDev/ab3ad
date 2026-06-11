@@ -33,10 +33,10 @@ export default async function HomePage() {
 
       <footer className="flex justify-end pb-2">
         <a
-          href="https://freelance.sa"
+          href="/assets/logo/certificate.pdf"
           target="_blank"
           rel="noreferrer"
-          aria-label="Visit freelance.sa"
+          aria-label="Open freelancing certificate"
           className="rounded-full border border-white/10 bg-white/5 p-2 transition hover:bg-white/10"
         >
           <img src={freelanceLogo.src} alt="freelance.sa" className="h-10 w-10" />
