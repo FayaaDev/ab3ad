@@ -2,7 +2,7 @@ import path from 'node:path';
 import { v4 as uuid } from 'uuid';
 import { getHi3DEnvelopeData, getHi3DError, getHi3DResult, getHi3DStatus } from '@/lib/hi3d-contract';
 import { normalizeHi3DFaceCount } from '@/lib/validation';
-import type { FileAsset, GenerationJob, Hi3DQueryResponse, Hi3DTaskResponse } from '@/lib/types';
+import type { FileAsset, GenerationJob, Hi3DBalanceResponse, Hi3DQueryResponse, Hi3DTaskResponse } from '@/lib/types';
 import { readStorageObject } from '@/lib/storage';
 import { sleep } from '@/lib/utils';
 
@@ -248,4 +248,37 @@ export async function queryTask(taskId: string): Promise<Hi3DQueryResponse> {
         }
       : undefined,
   };
+}
+
+export async function queryBalance(): Promise<Hi3DBalanceResponse> {
+  if (isMockMode()) {
+    return {
+      totalBalance: 14,
+      raw: { mock: true, totalBalance: 14 },
+    };
+  }
+
+  const token = await getAccessToken();
+  const baseUrl = process.env.HI3D_BASE_URL!;
+  const response = await fetchWithTimeout(`${baseUrl}/open-api/v1/balance`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Hi3D balance query failed with ${response.status}${await readErrorBody(response)}`);
+  }
+
+  const payload = (await response.json()) as Record<string, unknown>;
+  assertSuccessfulEnvelope(payload, 'Hi3D balance query failed.');
+  const data = getHi3DEnvelopeData(payload);
+  const totalBalance = Number(data.totalBalance);
+  if (!Number.isFinite(totalBalance)) {
+    throw new Error('Hi3D balance response missing data.totalBalance.');
+  }
+
+  return { totalBalance, raw: payload };
 }

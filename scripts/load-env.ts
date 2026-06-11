@@ -1,6 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+function parseEnvValue(value: string) {
+  const trimmed = value.trim();
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
 export function loadLocalEnv() {
   for (const fileName of ['.env.local', '.env']) {
     const filePath = path.join(process.cwd(), fileName);
@@ -19,7 +30,7 @@ export function loadLocalEnv() {
         continue;
       }
       const key = trimmed.slice(0, separatorIndex).trim();
-      const value = trimmed.slice(separatorIndex + 1).trim();
+      const value = parseEnvValue(trimmed.slice(separatorIndex + 1));
       if (!process.env[key]) {
         process.env[key] = value;
       }

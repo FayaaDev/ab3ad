@@ -120,3 +120,8 @@ export interface Hi3DQueryResponse {
   errorMessage?: string;
   raw: Record<string, unknown>;
 }
+
+export interface Hi3DBalanceResponse {
+  totalBalance: number;
+  raw: Record<string, unknown>;
+}

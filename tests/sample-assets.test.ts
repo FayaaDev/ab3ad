@@ -63,6 +63,24 @@ test('showcased Mageed sample resolves to the preview route', () => {
   assert.equal(mageedModel.src, '/api/assets/samples/Mageed.preview-v1.glb');
 });
 
+test('showcased MajidAbdullah sample resolves to the preview route', () => {
+  const model = getModelMarqueeModels().find((entry) => entry.src.includes('MajidAbdullah'));
+
+  assert.ok(model);
+  assert.equal(model.title, 'نموذج');
+  assert.equal(model.caption, 'عرض ثلاثي الأبعاد');
+  assert.equal(model.src, '/api/assets/samples/MajidAbdullah.preview-v1.glb');
+});
+
+test('showcased SalimHilal sample resolves to the preview route', () => {
+  const model = getModelMarqueeModels().find((entry) => entry.src.includes('SalimHilal'));
+
+  assert.ok(model);
+  assert.equal(model.title, 'نموذج');
+  assert.equal(model.caption, 'مجسم ثلاثي الأبعاد');
+  assert.equal(model.src, '/api/assets/samples/SalimHilal.preview-v1.glb');
+});
+
 test('showcased abady sample resolves to the preview route', () => {
   const abadyModel = getModelMarqueeModels().find((model) => model.title === 'عبادي الجوهر');
 

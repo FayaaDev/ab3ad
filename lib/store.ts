@@ -108,6 +108,25 @@ export async function createUserAccount(user: { id: string; email: string; name:
   return mapUser(result.rows[0] as RowRecord);
 }
 
+export async function setUserByEmail(input: { email: string; name: string; passwordHash: string; isAdmin?: boolean }) {
+  await ensureDatabaseSchema();
+  const result = await getPool().query(
+    `
+      update users
+      set name = $1, password_hash = $2, is_admin = $3
+      where lower(email) = lower($4)
+      returning *
+    `,
+    [input.name, input.passwordHash, input.isAdmin ?? false, input.email],
+  );
+
+  if (!result.rows[0]) {
+    return null;
+  }
+
+  return mapUser(result.rows[0] as RowRecord);
+}
+
 export async function getUser(userId: string) {
   return queryOne('select * from users where id = $1 limit 1', [userId], mapUser);
 }

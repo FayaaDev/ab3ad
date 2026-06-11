@@ -96,3 +96,6 @@
 {"id":"int-2441544f","kind":"field_change","created_at":"2026-06-11T11:18:14.72146Z","actor":"FayaaDev","issue_id":"ab3ad-79y","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-6f4f523d","kind":"field_change","created_at":"2026-06-11T16:37:53.039296Z","actor":"FayaaDev","issue_id":"ab3ad-49l","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-b3c35c0c","kind":"field_change","created_at":"2026-06-11T17:25:04.342201Z","actor":"FayaaDev","issue_id":"ab3ad-s0j","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-552f4747","kind":"field_change","created_at":"2026-06-11T18:00:50.799148Z","actor":"FayaaDev","issue_id":"ab3ad-z9m","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-64b0e117","kind":"field_change","created_at":"2026-06-11T18:31:26.164649Z","actor":"FayaaDev","issue_id":"ab3ad-mjx","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-669f4c84","kind":"field_change","created_at":"2026-06-11T18:54:07.440329Z","actor":"FayaaDev","issue_id":"ab3ad-9pj","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { getHi3DResult, getHi3DStatus, getHi3DTaskId } from '../lib/hi3d-contract';
-import { HI3D_LOW_BALANCE_MESSAGE, getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
+import { HI3D_LOW_BALANCE_MESSAGE, getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryBalance, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
 import { getNextPollDelay } from '../lib/job-runner';
 import type { FileAsset, GenerationJob } from '../lib/types';
 
@@ -220,6 +220,76 @@ test('queryTask surfaces API envelope errors from HTTP 200 responses', async () 
     global.fetch = originalFetch;
     resetHi3DClientState();
     await fs.rm(storageRoot, { recursive: true, force: true });
+  }
+});
+
+test('queryBalance uses the documented balance endpoint', async () => {
+  const previousEnv = { ...process.env };
+  const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-hi3d-'));
+  try {
+    setHi3DEnv(storageRoot);
+    resetHi3DClientState();
+    const calls: string[] = [];
+
+    global.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input);
+      calls.push(url);
+
+      if (url.endsWith('/open-api/v1/auth/token')) {
+        return new Response(JSON.stringify({ code: 200, data: { accessToken: 'token-5' }, msg: 'success' }), { status: 200 });
+      }
+
+      assert.equal(url, 'https://api.hitem3d.ai/open-api/v1/balance');
+      assert.equal(init?.method, 'GET');
+      assert.equal(init?.headers instanceof Headers ? init.headers.get('Authorization') : (init?.headers as Record<string, string>).Authorization, 'Bearer token-5');
+      return new Response(JSON.stringify({ code: 200, data: { totalBalance: 14.0 }, msg: 'success' }), { status: 200 });
+    };
+
+    const result = await queryBalance();
+    assert.equal(result.totalBalance, 14);
+    assert.deepEqual(calls, ['https://api.hitem3d.ai/open-api/v1/auth/token', 'https://api.hitem3d.ai/open-api/v1/balance']);
+  } finally {
+    restoreEnv(previousEnv);
+    global.fetch = originalFetch;
+    resetHi3DClientState();
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
+});
+
+test('queryBalance surfaces API envelope errors from HTTP 200 responses', async () => {
+  const previousEnv = { ...process.env };
+  const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-hi3d-'));
+  try {
+    setHi3DEnv(storageRoot);
+    resetHi3DClientState();
+
+    global.fetch = async (input: string | URL | Request) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.endsWith('/open-api/v1/auth/token')) {
+        return new Response(JSON.stringify({ code: 200, data: { accessToken: 'token-6' }, msg: 'success' }), { status: 200 });
+      }
+
+      return new Response(JSON.stringify({ code: 401, data: {}, msg: 'Unauthorized' }), { status: 200 });
+    };
+
+    await assert.rejects(() => queryBalance(), /Unauthorized \(401\)/);
+  } finally {
+    restoreEnv(previousEnv);
+    global.fetch = originalFetch;
+    resetHi3DClientState();
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
+});
+
+test('queryBalance returns a stable mock balance in mock mode', async () => {
+  const previousEnv = { ...process.env };
+  try {
+    process.env.HI3D_MODE = 'mock';
+    const result = await queryBalance();
+    assert.equal(result.totalBalance, 14);
+  } finally {
+    restoreEnv(previousEnv);
+    resetHi3DClientState();
   }
 });
 

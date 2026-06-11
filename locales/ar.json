@@ -64,6 +64,16 @@
         "title": "طلال مداح",
         "caption": "صوت الارض",
         "src": "/api/assets/samples/Talal-Ab3ad3d.glb"
+      },
+      {
+        "title": "ماجد عبدالله",
+        "caption": "أسطورة الكورة السعودية",
+        "src": "/api/assets/samples/MajidAbdullah.glb"
+      },
+      {
+        "title": "سالم الدوسري",
+        "caption": "التورنيدو",
+        "src": "/api/assets/samples/SalimHilal.glb"
       }
     ]
   },
@@ -255,6 +265,14 @@
       "balance": "الرصيد",
       "activity": "آخر العمليات"
     }
+  },
+  "adminHi3dBalance": {
+    "eyebrow": "رصيد Ab3ad3d",
+    "description": "استعلم عن الرصيد الحالي لحساب Hi3D المرتبط بالخادم.",
+    "refresh": "استرجع الرصيد",
+    "loadError": "تعذر تحميل رصيد Ab3ad3d.",
+    "updatedAt": "آخر تحديث:",
+    "empty": "غير محمل"
   },
   "statusLabels": {
     "queued": "في الانتظار",

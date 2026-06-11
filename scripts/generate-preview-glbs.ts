@@ -7,7 +7,9 @@ const DEFAULT_SAMPLE_MODELS = [
   'Abdo-Ab3ad3d.glb',
   'dabbrini.glb',
   'Mageed.glb',
+  'MajidAbdullah.glb',
   'Sager-Ab3ad3d.glb',
+  'SalimHilal.glb',
   'Talal-Ab3ad3d.glb',
 ];
 

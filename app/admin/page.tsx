@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { AdminHi3DBalanceCard } from '@/components/admin-hi3d-balance-card';
 import { AdminWalletPanel } from '@/components/admin-wallet-panel';
 import { AdminAuthError, AuthError, requireAdminUser } from '@/lib/auth';
 import { formatDateTime, formatNumber, formatStatusLabel } from '@/lib/locale';
@@ -28,7 +29,10 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <section>
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="sm:col-span-2 lg:col-span-1">
+            <AdminHi3DBalanceCard />
+          </div>
           {[
             { label: messages.adminPage.totalJobs, value: jobs.length },
             { label: messages.adminPage.activeJobs, value: activeJobs },

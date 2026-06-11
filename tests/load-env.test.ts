@@ -64,6 +64,26 @@ test('loadLocalEnv keeps non-empty shell variables', async () => {
   }
 });
 
+test('loadLocalEnv strips surrounding quotes from env values', async () => {
+  const env = snapshotEnv();
+  const cwd = process.cwd();
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-load-env-'));
+
+  try {
+    await fs.writeFile(path.join(tempDir, '.env.local'), 'ADMIN_SEED_PASSWORD="quoted-secret"\n');
+    process.chdir(tempDir);
+    delete process.env.ADMIN_SEED_PASSWORD;
+
+    loadLocalEnv();
+
+    assert.equal(process.env.ADMIN_SEED_PASSWORD, 'quoted-secret');
+  } finally {
+    process.chdir(cwd);
+    restoreEnv(env);
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('assertRequiredScriptEnv throws a clear error for empty required values', () => {
   const env = snapshotEnv();
 

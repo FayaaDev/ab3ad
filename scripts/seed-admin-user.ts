@@ -1,6 +1,6 @@
 import { loadLocalEnv } from './load-env';
 import { hashPassword } from '../lib/auth-utils';
-import { createUserAccount, getUserByEmail } from '../lib/store';
+import { createUserAccount, getUserByEmail, setUserByEmail } from '../lib/store';
 import { v4 as uuid } from 'uuid';
 
 loadLocalEnv();
@@ -19,9 +19,17 @@ async function main() {
     throw new Error('Replace the default ADMIN_SEED_PASSWORD placeholder before running npm run seed-admin.');
   }
 
+  const passwordHash = hashPassword(password);
   const existing = await getUserByEmail(email);
+
   if (existing) {
-    console.log(`User already exists: ${existing.email}`);
+    await setUserByEmail({
+      email,
+      name,
+      passwordHash,
+      isAdmin: true,
+    });
+    console.log(`Updated admin user password: ${email}`);
     process.exit(0);
   }
 
@@ -29,7 +37,7 @@ async function main() {
     id: uuid(),
     email,
     name,
-    passwordHash: hashPassword(password),
+    passwordHash,
     isAdmin: true,
   });
 
