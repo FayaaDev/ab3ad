@@ -46,13 +46,8 @@
         "src": "/api/assets/samples/Abdo-Ab3ad3d.glb"
       },
       {
-        "title": "أليسا",
-        "caption": "ملكة الاحساس",
-        "src": "/api/assets/samples/Alisa.glb"
-      },
-      {
-        "title": "دبرني",
-        "caption": "ملك الميمز",
+        "title": "نموذج",
+        "caption": "تصميم توليدي بالذكاء الاصطناعي",
         "src": "/api/assets/samples/dabbrini.glb"
       },
       {
@@ -129,7 +124,9 @@
     "download": "تنزيل GLB",
     "noJobs": "لا توجد مهام بعد.",
     "noActivity": "لا توجد عمليات بعد.",
-    "loadError": "تعذر تحميل الرصيد."
+    "loadError": "تعذر تحميل الرصيد.",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل"
   },
   "profilePage": {
     "eyebrow": "الملف الشخصي",
@@ -243,11 +240,14 @@
     "eyebrow": "محافظ المستخدمين",
     "title": "رصيد وسجل الشحن لكل مستخدم.",
     "description": "راقب الودائع، خصومات التوليد الناجحة، وحالات نقص الرصيد من نفس لوحة الدعم.",
-    "manualGrant": "إضافة رصيد يدوي",
+    "manualAdjustment": "تعديل رصيد يدوي",
     "emailPlaceholder": "بريد المستخدم",
-    "grant": "أضف الرصيد",
-    "grantSuccess": "تمت إضافة الرصيد.",
-    "grantError": "تعذر إضافة الرصيد.",
+    "amountPlaceholder": "+10 أو -10",
+    "adjust": "عدّل الرصيد",
+    "adjustSuccess": "تم تعديل الرصيد.",
+    "adjustError": "تعذر تعديل الرصيد.",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل",
     "noActivity": "لا توجد عمليات.",
     "empty": "لا يوجد مستخدمون بعد.",
     "columns": {
@@ -288,7 +288,7 @@
     "callback_failed": "وصل إشعار فشل المعالجة",
     "job_retried": "أُعيدت محاولة المهمة",
     "wallet_deposit": "شحن رصيد تجريبي",
-    "admin_credit_grant": "إضافة رصيد من المشرف",
+    "admin_credit_grant": "تعديل رصيد من المشرف",
     "generation_completed": "خصم توليد ناجح"
   }
 }

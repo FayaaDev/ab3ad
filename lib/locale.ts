@@ -1,6 +1,10 @@
 import { messages } from '@/lib/messages';
 
-export const APP_LOCALE = 'ar-SA';
+export const APP_LOCALE = 'ar-SA-u-nu-latn';
+
+export function formatNumber(value: number, options?: Intl.NumberFormatOptions) {
+  return value.toLocaleString(APP_LOCALE, options);
+}
 
 export function formatDateTime(value: string) {
   return new Date(value).toLocaleString(APP_LOCALE);

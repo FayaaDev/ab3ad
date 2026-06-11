@@ -5,7 +5,6 @@ import { generatePreviewGlb, getPreviewFilename, summarizePreview } from '@/lib/
 const DEFAULT_SAMPLE_MODELS = [
   'abady.glb',
   'Abdo-Ab3ad3d.glb',
-  'Alisa.glb',
   'dabbrini.glb',
   'Mageed.glb',
   'Sager-Ab3ad3d.glb',

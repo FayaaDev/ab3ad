@@ -335,7 +335,7 @@ export async function listWalletSummaries(limit = 100): Promise<WalletSummary[]>
     [users.map((user) => user.id)],
   );
   const balanceByUser = new Map((balances.rows as RowRecord[]).map((row) => [String(row.user_id), Number(row.balance)]));
-  const recentEvents = await Promise.all(users.map((user) => listWalletEvents(user.id, 5)));
+  const recentEvents = await Promise.all(users.map((user) => listWalletEvents(user.id, 25)));
 
   return users.map((user, index) => ({
     userId: user.id,

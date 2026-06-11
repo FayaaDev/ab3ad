@@ -5,7 +5,7 @@ import { createElement, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowRight, Download, Layers3, RefreshCcw, Sparkles } from 'lucide-react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
-import { formatDateTime, formatEventLabel, formatStatusLabel, formatTime } from '@/lib/locale';
+import { formatDateTime, formatEventLabel, formatNumber, formatStatusLabel, formatTime } from '@/lib/locale';
 import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
@@ -110,7 +110,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
             <div className="grid gap-6 p-6 lg:grid-cols-[1fr_19rem] lg:p-8">
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className={cn('rounded-full border px-4 py-2 text-xs tracking-[0.14em]', statusTone(data.job.status))}>{formatStatusLabel(data.job.status)}</span>
+                  <span className={cn('inline-flex items-center whitespace-nowrap rounded-full border px-4 py-2 text-xs tracking-[0.14em]', statusTone(data.job.status))}>{formatStatusLabel(data.job.status)}</span>
                   <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.jobLabel} {jobId.slice(0, 8)}</span>
                 </div>
 
@@ -131,7 +131,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
                   </div>
                   <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-4">
                     <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.timelineEvents}</p>
-                    <p className="mt-3 text-sm leading-6 text-[color:var(--foreground)]">{interpolate(messages.jobStatus.recordedPoints, { count: data.events.length.toLocaleString('ar-SA') })}</p>
+                    <p className="mt-3 text-sm leading-6 text-[color:var(--foreground)]">{interpolate(messages.jobStatus.recordedPoints, { count: formatNumber(data.events.length) })}</p>
                   </div>
                 </div>
 
@@ -226,7 +226,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
                 <div className="absolute start-[calc(1rem-0.34rem)] top-6 size-3 rounded-full bg-[color:var(--accent)] shadow-[0_0_0_6px_rgba(193,168,106,0.1)]" />
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.station} {(index + 1).toLocaleString('ar-SA', { minimumIntegerDigits: 2 })}</p>
+                    <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{messages.jobStatus.station} {formatNumber(index + 1, { minimumIntegerDigits: 2 })}</p>
                     <strong className="block text-base font-medium text-[color:var(--foreground)]">{formatEventLabel(event.eventType)}</strong>
                   </div>
                   <span className="job-time text-xs tracking-[0.12em] text-[color:var(--muted)]">{formatTime(event.createdAt)}</span>

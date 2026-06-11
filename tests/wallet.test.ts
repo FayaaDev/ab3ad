@@ -78,6 +78,16 @@ test('wallet ledger supports nullable deposits and derives balance from credit d
   assert.deepEqual(new Set(events.map((event) => event.eventType)), new Set(['wallet_deposit', 'admin_credit_grant']));
 });
 
+test('admin adjustments can deduct credits without forcing a job id', async () => {
+  const user = await createTestUser('admin-adjust');
+
+  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 5 });
+  const adjustment = await recordWalletEvent({ userId: user.id, eventType: 'admin_credit_grant', creditDelta: -2 });
+
+  assert.equal(adjustment.jobId, undefined);
+  assert.equal(await getWalletBalance(user.id), 3);
+});
+
 test('uploads and asset persistence remain allowed with zero balance while generation start is blocked', async () => {
   const user = await createTestUser('zero');
   const asset = await createTestAsset(user.id);

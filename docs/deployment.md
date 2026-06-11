@@ -69,7 +69,7 @@ npm run deploy
 Staging and production checks:
 
 1. `GET /login` returns `200`.
-2. `GET $SAMPLE_ASSET_BASE_URL/Alisa.glb` returns `200` with long-lived cache headers.
+2. `GET $SAMPLE_ASSET_BASE_URL/abady.glb` returns `200` with long-lived cache headers.
 3. `GET /api/health` with `Authorization: Bearer $HEALTHCHECK_TOKEN` returns `ok: true`.
 4. Register/sign in with an admin allowlisted email.
 5. Upload one valid image through `/api/uploads`.

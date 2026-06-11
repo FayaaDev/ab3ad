@@ -28,14 +28,27 @@ type SelectedFile = {
   size: number;
 };
 
+type TerminalNotice = 'completed' | 'other' | null;
+
+const completedProfileMessage = 'اكتمل النموذج. يمكنك تنزيله من ملفك الشخصي.';
+const terminalProfileMessage = 'انتهت المهمة. يمكنك مراجعة التفاصيل من ملفك الشخصي.';
+
 export function UploadForm() {
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [isJobTerminal, setIsJobTerminal] = useState(false);
+  const [terminalNotice, setTerminalNotice] = useState<TerminalNotice>(null);
   const [error, setError] = useState<string | null>(null);
   const uploadMessages = messages.uploadForm;
+
+  function resetUploadState() {
+    setActiveJobId(null);
+    setUploadedAssets([]);
+    setSelectedFiles([]);
+    window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
+    uppy.cancelAll();
+  }
 
   const uppy = useMemo(() => {
     const instance = new Uppy({
@@ -66,21 +79,21 @@ export function UploadForm() {
 
     instance.on('file-added', () => {
       setError(null);
+      setTerminalNotice(null);
       setActiveJobId(null);
-      setIsJobTerminal(false);
       setUploadedAssets([]);
       window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
     });
     instance.on('file-removed', () => {
+      setTerminalNotice(null);
       setActiveJobId(null);
-      setIsJobTerminal(false);
       window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
     });
     instance.on('cancel-all', () => {
+      setTerminalNotice(null);
       setActiveJobId(null);
-      setIsJobTerminal(false);
       setUploadedAssets([]);
       window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       syncSelectedFiles();
@@ -108,10 +121,10 @@ export function UploadForm() {
   }, [uppy]);
 
   useEffect(() => {
-    if (isJobTerminal) {
+    if (terminalNotice) {
       window.dispatchEvent(new Event('wallet:refresh'));
     }
-  }, [isJobTerminal]);
+  }, [terminalNotice]);
 
   useEffect(() => {
     const storedJobId = window.localStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
@@ -136,8 +149,13 @@ export function UploadForm() {
       }
 
       if (!cancelled) {
+        if (['completed', 'failed', 'result_download_failed', 'cancelled', 'expired'].includes(body.job.status)) {
+          resetUploadState();
+          setTerminalNotice(body.job.status === 'completed' ? 'completed' : 'other');
+          return;
+        }
+
         setActiveJobId(storedJobId);
-        setIsJobTerminal(['completed', 'failed', 'result_download_failed', 'cancelled', 'expired'].includes(body.job.status));
       }
     }
 
@@ -150,6 +168,7 @@ export function UploadForm() {
 
   async function uploadThenGenerate() {
     setError(null);
+    setTerminalNotice(null);
     setIsSubmitting(true);
 
     try {
@@ -160,7 +179,6 @@ export function UploadForm() {
 
       window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       setActiveJobId(null);
-      setIsJobTerminal(false);
 
       uppy.setMeta({ mode: DEFAULT_MODE, view_role: 'single' });
       const result = await uppy.upload();
@@ -207,7 +225,6 @@ export function UploadForm() {
       }
 
       setActiveJobId(generationBody.jobId);
-      setIsJobTerminal(false);
       window.localStorage.setItem(ACTIVE_JOB_STORAGE_KEY, generationBody.jobId);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : uploadMessages.errors.generationStartFailed);
@@ -284,17 +301,38 @@ export function UploadForm() {
           </p>
         ) : null}
 
+        {terminalNotice ? (
+          <p className="rounded-[1.25rem] border border-[rgba(193,168,106,0.26)] bg-[rgba(193,168,106,0.12)] px-4 py-3 text-sm text-[color:var(--foreground)]">
+            {terminalNotice === 'completed' ? completedProfileMessage : terminalProfileMessage}{' '}
+            <a className="text-[color:var(--accent)] underline underline-offset-4" href="/profile">
+              {messages.siteHeader.profile}
+            </a>
+          </p>
+        ) : null}
+
         {error ? <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p> : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button disabled={isSubmitting || Boolean(activeJobId && !isJobTerminal)} onClick={uploadThenGenerate} size="lg" type="button">
-            {isSubmitting ? uploadMessages.submitting : activeJobId && !isJobTerminal ? uploadMessages.generating : uploadMessages.submit}
+          <Button disabled={isSubmitting || Boolean(activeJobId)} onClick={uploadThenGenerate} size="lg" type="button">
+            {isSubmitting ? uploadMessages.submitting : activeJobId ? uploadMessages.generating : uploadMessages.submit}
             <ArrowLeft className="size-4" />
           </Button>
           <p className="text-xs text-[color:var(--muted)]">{uploadMessages.singleLimit}</p>
         </div>
 
-        {activeJobId ? <InlineGenerationProgress jobId={activeJobId} onTerminalStateChange={setIsJobTerminal} /> : null}
+        {activeJobId ? (
+          <InlineGenerationProgress
+            jobId={activeJobId}
+            onTerminalStateChange={({ isTerminal, status }) => {
+              if (!isTerminal || !status) {
+                return;
+              }
+
+              resetUploadState();
+              setTerminalNotice(status === 'completed' ? 'completed' : 'other');
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

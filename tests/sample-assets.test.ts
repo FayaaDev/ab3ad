@@ -27,7 +27,7 @@ test('sample asset URLs fall back to the app route when no public base url is co
     delete process.env.SAMPLE_ASSET_BASE_URL;
     delete process.env.NEXT_PUBLIC_SAMPLE_ASSET_BASE_URL;
 
-    assert.equal(resolveSampleAssetUrl('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.glb');
+    assert.equal(resolveSampleAssetUrl('/api/assets/samples/abady.glb'), '/api/assets/samples/abady.glb');
   } finally {
     restoreEnv('SAMPLE_ASSET_BASE_URL', previousBaseUrl);
     restoreEnv('NEXT_PUBLIC_SAMPLE_ASSET_BASE_URL', previousPublicBaseUrl);
@@ -40,8 +40,8 @@ test('sample asset URLs can be rewritten to a public asset host', () => {
   try {
     process.env.SAMPLE_ASSET_BASE_URL = 'https://assets.example.com/samples/';
 
-    assert.equal(resolveSampleAssetUrl('/api/assets/samples/Alisa.glb'), 'https://assets.example.com/samples/Alisa.glb');
-    assert.equal(resolveSamplePreviewAssetUrl('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.preview-v1.glb');
+    assert.equal(resolveSampleAssetUrl('/api/assets/samples/abady.glb'), 'https://assets.example.com/samples/abady.glb');
+    assert.equal(resolveSamplePreviewAssetUrl('/api/assets/samples/abady.glb'), '/api/assets/samples/abady.preview-v1.glb');
     assert.equal(getModelMarqueeModels()[0]?.src.startsWith('/api/assets/samples/'), true);
     assert.equal(getModelMarqueeModels()[0]?.src.endsWith('.preview-v1.glb'), true);
   } finally {
@@ -50,8 +50,8 @@ test('sample asset URLs can be rewritten to a public asset host', () => {
 });
 
 test('sample preview routes use versioned GLB names', () => {
-  assert.equal(getPreviewFilename('Alisa.glb'), 'Alisa.preview-v1.glb');
-  assert.equal(getSamplePreviewRoute('/api/assets/samples/Alisa.glb'), '/api/assets/samples/Alisa.preview-v1.glb');
+  assert.equal(getPreviewFilename('abady.glb'), 'abady.preview-v1.glb');
+  assert.equal(getSamplePreviewRoute('/api/assets/samples/abady.glb'), '/api/assets/samples/abady.preview-v1.glb');
 });
 
 test('showcased Mageed sample resolves to the preview route', () => {
@@ -88,7 +88,7 @@ test('local sample route serves bundled original sample assets', async () => {
   try {
     process.env.STORAGE_DRIVER = 'local';
 
-    const { buffer, fallback } = await readSampleAsset('Alisa.glb');
+    const { buffer, fallback } = await readSampleAsset('abady.glb');
 
     assert.equal(fallback, false);
     assert.ok(buffer.byteLength > 0);
@@ -100,7 +100,7 @@ test('local sample route serves bundled original sample assets', async () => {
 test('local sample route falls back from missing preview to bundled original asset', async () => {
   const previousStorageDriver = process.env.STORAGE_DRIVER;
   const previousPreviewFallback = process.env.SAMPLE_PREVIEW_FALLBACK_ORIGINAL;
-  const previewPath = path.join(process.cwd(), 'data/storage/samples/Alisa.preview-v1.glb');
+  const previewPath = path.join(process.cwd(), 'data/storage/samples/abady.preview-v1.glb');
   const backupPath = `${previewPath}.bak`;
 
   try {
@@ -108,7 +108,7 @@ test('local sample route falls back from missing preview to bundled original ass
     delete process.env.SAMPLE_PREVIEW_FALLBACK_ORIGINAL;
     await fs.rename(previewPath, backupPath);
 
-    const { buffer, fallback } = await readSampleAsset('Alisa.preview-v1.glb');
+    const { buffer, fallback } = await readSampleAsset('abady.preview-v1.glb');
 
     assert.equal(fallback, true);
     assert.ok(buffer.byteLength > 0);

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AdminWalletPanel } from '@/components/admin-wallet-panel';
 import { AdminAuthError, AuthError, requireAdminUser } from '@/lib/auth';
-import { formatDateTime, formatStatusLabel } from '@/lib/locale';
+import { formatDateTime, formatNumber, formatStatusLabel } from '@/lib/locale';
 import { messages } from '@/lib/messages';
 import { listGenerationJobs, listWalletSummaries } from '@/lib/store';
 
@@ -27,16 +27,8 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="rounded-[2.5rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.26)]">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.adminPage.eyebrow}</p>
-          <h1 className="mt-4 font-serif text-5xl text-[color:var(--foreground)] sm:text-6xl">{messages.adminPage.title}</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-8 text-[color:var(--muted-strong)] sm:text-base">
-            {messages.adminPage.description}
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+      <section>
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {[
             { label: messages.adminPage.totalJobs, value: jobs.length },
             { label: messages.adminPage.activeJobs, value: activeJobs },
@@ -45,7 +37,7 @@ export default async function AdminPage() {
           ].map((stat) => (
             <div key={stat.label} className="rounded-[1.8rem] border border-[color:var(--line)] bg-white/5 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
               <p className="text-[10px] tracking-[0.14em] text-[color:var(--muted)]">{stat.label}</p>
-              <p className="mt-3 font-serif text-4xl text-[color:var(--foreground)]">{stat.value.toLocaleString('ar-SA')}</p>
+              <p className="mt-3 font-serif text-4xl text-[color:var(--foreground)]">{formatNumber(stat.value)}</p>
             </div>
           ))}
         </div>
@@ -79,7 +71,7 @@ export default async function AdminPage() {
                       </a>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--muted-strong)]">{formatStatusLabel(job.status)}</span>
+                      <span className="inline-flex items-center whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--muted-strong)]">{formatStatusLabel(job.status)}</span>
                     </td>
                     <td className="job-meta px-6 py-5 text-[color:var(--muted-strong)]">{job.userId}</td>
                     <td className="px-6 py-5 text-[color:var(--muted-strong)]">{job.outputFormat}</td>

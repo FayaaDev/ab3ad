@@ -48,7 +48,7 @@ export function InlineGenerationProgress({
   onTerminalStateChange,
 }: {
   jobId: string;
-  onTerminalStateChange?: (isTerminal: boolean) => void;
+  onTerminalStateChange?: (state: { isTerminal: boolean; status: string | null }) => void;
 }) {
   const [data, setData] = useState<JobPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +104,10 @@ export function InlineGenerationProgress({
   const progress = useMemo(() => getProgressState(data?.job.status ?? 'queued'), [data?.job.status]);
 
   useEffect(() => {
-    onTerminalStateChange?.(Boolean(error) || Boolean(data && terminalStatuses.includes(data.job.status)));
+    onTerminalStateChange?.({
+      isTerminal: Boolean(data && terminalStatuses.includes(data.job.status)),
+      status: data?.job.status ?? null,
+    });
   }, [data, error, onTerminalStateChange]);
 
   if (error) {

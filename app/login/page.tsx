@@ -3,6 +3,8 @@ import { AuthPanel } from '@/components/auth-panel';
 import { getCurrentUser } from '@/lib/auth';
 import { messages } from '@/lib/messages';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user) {

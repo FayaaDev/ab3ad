@@ -4,8 +4,8 @@ The app keeps full-quality `.glb` files as the download source of truth and writ
 
 ## Naming and storage
 
-- Full sample asset: `samples/Alisa.glb`
-- Preview sample asset: `samples/Alisa.preview-v1.glb`
+- Full sample asset: `samples/abady.glb`
+- Preview sample asset: `samples/abady.preview-v1.glb`
 - Full generated result: `results/<userId>/<jobId>-<uuid>.glb`
 - Preview generated result: `results/<userId>/<jobId>-<uuid>.preview-v1.glb`
 
@@ -36,7 +36,7 @@ npm run previews:generate
 Optional flags:
 
 ```bash
-npm run previews:generate -- --source-dir assets --output-dir data/storage/samples --models Alisa.glb,dabbrini.glb
+npm run previews:generate -- --source-dir assets --output-dir data/storage/samples --models abady.glb,dabbrini.glb
 ```
 
 For object storage deployments, upload the generated `*.preview-v1.glb` files to the same `samples/` prefix as the original full GLBs.

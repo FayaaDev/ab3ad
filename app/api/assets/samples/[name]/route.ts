@@ -5,7 +5,6 @@ import { readSampleAsset } from '@/lib/sample-asset-storage';
 const ORIGINAL_SAMPLE_ASSETS = [
   'abady.glb',
   'Abdo-Ab3ad3d.glb',
-  'Alisa.glb',
   'dabbrini.glb',
   'Mageed.glb',
   'Sager-Ab3ad3d.glb',

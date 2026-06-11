@@ -22,7 +22,7 @@ export const walletTopUpSchema = z.object({
 export const adminCreditGrantSchema = z.object({
   userId: z.string().trim().min(1).optional(),
   email: z.string().trim().email().optional(),
-  amount: z.coerce.number().int().min(1).max(1000),
+  amount: z.coerce.number().int().min(-1000).max(1000).refine((value) => value !== 0, 'Adjustment amount must not be zero.'),
 }).refine((value) => Boolean(value.userId || value.email), 'Provide a user id or email.');
 
 export const DEFAULT_SINGLE_IMAGE_FACE_COUNT = '800000';

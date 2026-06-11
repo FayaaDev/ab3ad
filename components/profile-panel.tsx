@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CreditCard, Download, Loader2 } from 'lucide-react';
 
 import { buttonVariants } from '@/components/ui/button';
-import { formatDateTime, formatEventLabel, formatStatusLabel } from '@/lib/locale';
+import { formatDateTime, formatEventLabel, formatNumber, formatStatusLabel } from '@/lib/locale';
 import { messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
 
@@ -50,6 +50,7 @@ export function ProfilePanel({ userName }: { userName: string }) {
   const profileMessages = messages.profilePanel;
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [jobs, setJobs] = useState<ProfileJob[]>([]);
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +104,7 @@ export function ProfilePanel({ userName }: { userName: string }) {
         <div className="rounded-[1.6rem] border border-white/10 bg-black/20 px-5 py-4 text-center">
           <p className="text-[10px] tracking-[0.14em] text-[color:var(--muted)]">{profileMessages.balance}</p>
           <p className="mt-3 font-serif text-4xl text-[color:var(--foreground)]">
-            {isLoading ? <Loader2 className="mx-auto size-7 animate-spin text-[color:var(--accent)]" /> : (wallet?.balance ?? 0).toLocaleString('ar-SA')}
+            {isLoading ? <Loader2 className="mx-auto size-7 animate-spin text-[color:var(--accent)]" /> : formatNumber(wallet?.balance ?? 0)}
           </p>
         </div>
       </div>
@@ -117,12 +118,12 @@ export function ProfilePanel({ userName }: { userName: string }) {
             {profileMessages.recentActivity}
           </p>
           <ul className="mt-4 space-y-2">
-            {(wallet?.events ?? []).slice(0, 5).map((event) => (
+            {(showAllEvents ? wallet?.events ?? [] : (wallet?.events ?? []).slice(0, 5)).map((event) => (
               <li className="rounded-[1.1rem] bg-black/20 px-3 py-3 text-sm" key={event.id}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[color:var(--foreground)]">{formatEventLabel(event.eventType)}</span>
                   <span className={event.creditDelta > 0 ? 'text-emerald-200' : 'text-rose-200'}>
-                    {event.creditDelta > 0 ? '+' : ''}{event.creditDelta.toLocaleString('ar-SA')}
+                    {event.creditDelta > 0 ? '+' : ''}{formatNumber(event.creditDelta)}
                   </span>
                 </div>
                 <p className="job-time mt-2 text-xs text-[color:var(--muted)]">{formatDateTime(event.createdAt)}</p>
@@ -130,6 +131,15 @@ export function ProfilePanel({ userName }: { userName: string }) {
             ))}
             {!isLoading && !(wallet?.events ?? []).length ? <li className="text-sm text-[color:var(--muted)]">{profileMessages.noActivity}</li> : null}
           </ul>
+          {(wallet?.events ?? []).length > 5 ? (
+            <button
+              className="mt-3 text-xs text-[color:var(--accent)] transition-opacity hover:opacity-80"
+              onClick={() => setShowAllEvents((current) => !current)}
+              type="button"
+            >
+              {showAllEvents ? profileMessages.showLess : profileMessages.showMore}
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-6 rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
@@ -145,7 +155,7 @@ export function ProfilePanel({ userName }: { userName: string }) {
                     <div className="space-y-2">
                       <p className="text-sm text-[color:var(--foreground)]">{job.jobName}</p>
                       <p className="job-time text-xs text-[color:var(--muted)]">{formatDateTime(job.createdAt)}</p>
-                      <span className={cn('inline-flex rounded-full border px-3 py-1 text-xs tracking-[0.14em]', statusTone(job.status))}>
+                      <span className={cn('inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 text-xs tracking-[0.14em]', statusTone(job.status))}>
                         {formatStatusLabel(job.status)}
                       </span>
                     </div>

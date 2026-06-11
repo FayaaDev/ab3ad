@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { messages } from '@/lib/messages';
@@ -9,7 +8,6 @@ import { messages } from '@/lib/messages';
 type Mode = 'login' | 'register';
 
 export function AuthPanel() {
-  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +31,8 @@ export function AuthPanel() {
         throw new Error(body.error || 'Authentication failed.');
       }
 
-      window.location.href = searchParams.get('next') || '/';
+      const next = new URLSearchParams(window.location.search).get('next');
+      window.location.href = next || '/';
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Authentication failed.');
     } finally {

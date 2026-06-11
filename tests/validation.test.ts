@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mapHi3DStatus } from '../lib/utils';
-import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, normalizeHi3DFaceCount, qualityToResolution, validateAssetsForMode } from '../lib/validation';
+import { DEFAULT_SINGLE_IMAGE_FACE_COUNT, adminCreditGrantSchema, normalizeHi3DFaceCount, qualityToResolution, validateAssetsForMode } from '../lib/validation';
 import type { FileAsset } from '../lib/types';
 
 const baseAsset: FileAsset = {
@@ -45,4 +45,10 @@ test('Hi3D statuses map to internal states', () => {
   assert.equal(mapHi3DStatus('processing'), 'hi3d_processing');
   assert.equal(mapHi3DStatus('success'), 'downloading_result');
   assert.equal(mapHi3DStatus('failed'), 'failed');
+});
+
+test('admin wallet adjustments accept signed integers except zero', () => {
+  assert.equal(adminCreditGrantSchema.parse({ email: 'user@example.com', amount: 10 }).amount, 10);
+  assert.equal(adminCreditGrantSchema.parse({ email: 'user@example.com', amount: -10 }).amount, -10);
+  assert.throws(() => adminCreditGrantSchema.parse({ email: 'user@example.com', amount: 0 }), /must not be zero/i);
 });
