@@ -77,6 +77,7 @@ export interface GenerationJob {
   errorCode?: string;
   errorMessage?: string;
   pollAttempts?: number;
+  nextPollAt?: string;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;

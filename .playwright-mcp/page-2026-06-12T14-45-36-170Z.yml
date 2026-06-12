@@ -1,0 +1,30 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "أبعاد" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e7]: أبعاد
+          - paragraph [ref=e8]: "ابعاد: المنصة المتخصصة في توليد نماذج عالية الجودة جاهزة للطباعة"
+        - navigation [ref=e9]:
+          - link "تسجيل الدخول" [ref=e10] [cursor=pointer]:
+            - /url: /login?next=/
+    - main [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - paragraph [ref=e15]: تقدّم المهمة
+            - heading "تابع سجل التوليد لحظة بلحظة." [level=1] [ref=e16]
+            - paragraph [ref=e17]: نعرض الإرسال، ومعالجة المزوّد، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.
+          - complementary [ref=e18]:
+            - paragraph [ref=e19]: مرجع
+            - generic [ref=e20]:
+              - generic [ref=e21]:
+                - paragraph [ref=e22]: معرّف المهمة
+                - paragraph [ref=e23]: 8b69b90d-d0b6-4d47-97ab-42551db366f1
+              - generic [ref=e24]:
+                - paragraph [ref=e25]: المخرجات المتوقعة
+                - paragraph [ref=e26]: ملف نتيجة محفوظ، وسجل أحداث، ومسار للاستعادة عند الفشل، وملف GLB قابل للتنزيل عند الجاهزية.
+        - paragraph [ref=e27]: جارٍ تحميل المهمة…
+  - alert [ref=e28]

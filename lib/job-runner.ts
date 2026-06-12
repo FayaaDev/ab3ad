@@ -46,7 +46,7 @@ function getQueryRefreshMinAgeMs() {
   return Number(process.env.PROVIDER_QUERY_REFRESH_MIN_AGE_MS ?? process.env.HI3D_QUERY_REFRESH_MIN_AGE_MS ?? '15000') || 15_000;
 }
 
-export function shouldRefreshActiveJob(job: { status: string; updatedAt: string; providerTaskId?: string; resultAssetId?: string }) {
+export function shouldRefreshActiveJob(job: { status: string; updatedAt: string; providerTaskId?: string; resultAssetId?: string; nextPollAt?: string }) {
   if (job.resultAssetId || !isActiveGenerationStatus(job.status)) {
     return false;
   }
@@ -55,6 +55,10 @@ export function shouldRefreshActiveJob(job: { status: string; updatedAt: string;
   }
 
   const updatedAtMs = Date.parse(job.updatedAt);
+  const nextPollAtMs = 'nextPollAt' in job && job.nextPollAt ? Date.parse(job.nextPollAt) : Number.NaN;
+  if (!Number.isNaN(nextPollAtMs)) {
+    return Date.now() >= nextPollAtMs;
+  }
   return Number.isNaN(updatedAtMs) || Date.now() - updatedAtMs >= getQueryRefreshMinAgeMs();
 }
 
@@ -113,6 +117,7 @@ async function scheduleNextPoll(jobId: string, pollAttempts: number) {
       errorCode: 'provider_poll_timeout',
       errorMessage: 'The provider did not finish before the polling timeout window ended.',
       pollAttempts,
+      nextPollAt: undefined,
     });
     await refundReservedJob(job, 'provider_poll_timeout');
     await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: 'provider_poll_timeout', errorMessage: 'Polling timeout reached.' } });
@@ -120,6 +125,8 @@ async function scheduleNextPoll(jobId: string, pollAttempts: number) {
   }
 
   const delayMs = getNextPollDelay(pollAttempts);
+  const nextPollAt = new Date(Date.now() + delayMs).toISOString();
+  await updateGenerationJob(jobId, { nextPollAt });
   await addJobEvent({ jobId, eventType: 'poll_rescheduled', payload: { delayMs, pollAttempts } });
   if (getQueueMode() === 'inline') {
     return;
@@ -141,6 +148,7 @@ async function queryAndHandleJob(jobId: string) {
     errorCode: query.errorCode,
     errorMessage: query.errorMessage,
     pollAttempts: nextPollAttempts,
+    nextPollAt: undefined,
   });
   await addJobEvent({ jobId, eventType: `provider_${query.state}`, payload: query.raw });
 
@@ -168,7 +176,7 @@ export async function processJob(jobId: string) {
 
   try {
     if (job.status === 'queued') {
-      await updateGenerationJob(jobId, { status: 'submitting', errorCode: undefined, errorMessage: undefined });
+      await updateGenerationJob(jobId, { status: 'submitting', errorCode: undefined, errorMessage: undefined, nextPollAt: undefined });
       await addJobEvent({ jobId, eventType: 'submit_started', payload: { providerId: job.providerId } });
       const submission = await provider.submit(job, assets);
       await updateGenerationJob(jobId, {
@@ -177,6 +185,7 @@ export async function processJob(jobId: string) {
         errorCode: undefined,
         errorMessage: undefined,
         pollAttempts: 0,
+        nextPollAt: undefined,
       });
       await addJobEvent({ jobId, eventType: 'provider_submitted', payload: submission.raw });
     }
@@ -188,6 +197,7 @@ export async function processJob(jobId: string) {
       status: 'failed',
       errorCode: 'provider_request_failed',
       errorMessage,
+      nextPollAt: undefined,
     });
     await refundReservedJob(failedJob, 'provider_request_failed');
     await addJobEvent({ jobId, eventType: 'job_failed', payload: { errorCode: 'provider_request_failed', errorMessage } });
@@ -252,6 +262,7 @@ export async function retryFailedJob(jobId: string) {
         errorCode: query.errorCode,
         errorMessage: query.errorMessage,
         pollAttempts: nextPollAttempts,
+        nextPollAt: undefined,
       });
       await addJobEvent({ jobId, eventType: `provider_${query.state}`, payload: query.raw });
 
@@ -373,7 +384,7 @@ async function downloadResult(job: GenerationJob, modelUrl: string, coverUrl?: s
       provider.assertResultUrl?.(coverUrl);
     }
 
-    await updateGenerationJob(job.id, { status: 'downloading_result' });
+      await updateGenerationJob(job.id, { status: 'downloading_result', nextPollAt: undefined });
     await addJobEvent({ jobId: job.id, eventType: 'download_started', payload: { modelUrl, coverUrl, providerId: latest.job.providerId } });
 
     try {
@@ -427,6 +438,7 @@ async function downloadResult(job: GenerationJob, modelUrl: string, coverUrl?: s
         completedAt: nowIso(),
         errorCode: undefined,
         errorMessage: undefined,
+        nextPollAt: undefined,
       });
       if (settleWallet && latest.job.settlementState === 'reserved') {
         await settleGenerationCredits({ jobId: job.id, userId: latest.job.userId, pricingSnapshot: latest.job.pricingSnapshot });
@@ -437,6 +449,7 @@ async function downloadResult(job: GenerationJob, modelUrl: string, coverUrl?: s
         status: 'result_download_failed',
         errorCode: 'result_download_failed',
         errorMessage: error instanceof Error ? error.message : 'Unknown download error',
+        nextPollAt: undefined,
       });
       await addJobEvent({ jobId: job.id, eventType: 'download_failed', payload: { message: error instanceof Error ? error.message : 'Unknown error' } });
       throw error;
@@ -459,6 +472,7 @@ export async function handleHi3DCallback(taskId: string, status: 'created' | 'qu
     status: nextStatus,
     errorCode: payload.error_code ? String(payload.error_code) : undefined,
     errorMessage: payload.error_message ? String(payload.error_message) : undefined,
+    nextPollAt: undefined,
   });
   await addJobEvent({ jobId: job.id, eventType: `callback_${status}`, payload });
 

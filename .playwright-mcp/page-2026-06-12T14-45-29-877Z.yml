@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "أبعاد" [ref=e6] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e7]: أبعاد
+          - paragraph [ref=e8]: "ابعاد: المنصة المتخصصة في توليد نماذج عالية الجودة جاهزة للطباعة"
+        - navigation [ref=e9]:
+          - link "تسجيل الدخول" [ref=e10] [cursor=pointer]:
+            - /url: /login?next=/
+    - main [ref=e11]:
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - paragraph
+          - heading "سجّل الدخول قبل معالجة صورتك ." [level=1] [ref=e14]
+          - paragraph
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - button "تسجيل الدخول" [ref=e17]
+            - button "إنشاء حساب" [ref=e18]
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - text: البريد الإلكتروني
+              - textbox "البريد الإلكتروني" [ref=e21]
+            - generic [ref=e22]:
+              - text: كلمة المرور
+              - textbox "كلمة المرور" [ref=e23]
+            - button "ادخل إلى حسابك" [ref=e24]
+  - alert [ref=e25]

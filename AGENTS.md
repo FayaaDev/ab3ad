@@ -1,72 +1,34 @@
 # Agent Instructions
 
-## Project
-- `ab3ad` is a Next.js 15 App Router app that turns uploaded images into 3D models through Ab3ad3d/Hi3D.
-- The app runs on Cloudflare Workers via OpenNext; storage is Cloudflare R2; PostgreSQL stays external and Workers reach it through Hyperdrive.
-- Auth is email/password with signed HTTP-only `ab3ad_session` cookies.
-- Users have wallets/credits; starting a generation requires available credits and a completed generation debits `1` credit.
+## Stack And Entrypoints
+- Next.js 15 App Router app deployed to Cloudflare Workers through OpenNext; Wrangler entry is `.open-next/worker.js` from `wrangler.jsonc`.
+- The main generation flow is wired through `app/api/generations/route.ts`, `lib/job-runner.ts`, `lib/queue.ts`, `lib/store.ts`, and `lib/storage.ts`.
+- Auth is custom email/password with the signed HTTP-only `ab3ad_session` cookie in `lib/auth.ts`.
 
-## Current App Shape
-- Public/auth pages: `/`, `/login`, `/profile`, `/jobs/[jobId]`, `/admin`.
-- Home page shows the sample model marquee and the authenticated upload studio.
-- Profile page shows wallet balance/history plus recent user jobs and download links.
-- Admin page shows job diagnostics and wallet grant controls.
-- Sample showcase assets are served from `/api/assets/samples/[name]` with preview fallback support.
+## Commands That Matter
+- Local app flow: `cp .env.example .env.local && npm install && docker compose up -d && npm run seed-admin && npm run dev`.
+- `npm run worker` starts the BullMQ worker for `JOB_QUEUE_MODE=redis` only.
+- `npm run lint` is TypeScript only (`tsc --noEmit`); there is no separate ESLint command in `package.json`.
+- Tests run with Node's test runner via `tsx --test tests/**/*.test.ts`. Run one file with `tsx --test tests/<name>.test.ts`.
+- Cloudflare build/deploy commands all go through OpenNext: `npm run preview`, `npm run deploy:staging`, `npm run deploy`, `npm run cf:dry-run`.
 
-## Backend
-- Auth/session routes: `app/api/auth/**`.
-- Upload route: `app/api/uploads/route.ts` stores validated source files in app-controlled storage.
-- Generation routes: `app/api/generations/**` create jobs, expose status, retries, and stored result downloads.
-- Wallet routes: `app/api/wallet/**` expose balance/history and the current fake top-up flow.
-- Profile jobs route: `app/api/profile/jobs/route.ts` refreshes active jobs and returns user-facing job summaries.
-- Admin wallet grant route: `app/api/admin/wallet/grants/route.ts` adjusts user credits.
-- Health route: `app/api/health/route.ts` is protected by admin auth or `HEALTHCHECK_TOKEN`.
+## Runtime Quirks
+- Deployed staging and production are both `JOB_QUEUE_MODE=inline` in `wrangler.jsonc`. In that mode `lib/queue.ts` uses Worker `waitUntil`; do not assume Redis worker processing is active in Cloudflare.
+- `npm run worker` and `npm run healthcheck` call `scripts/load-env.ts` and then require non-empty `DATABASE_URL` and `REDIS_URL`. The app's dev/test fallbacks in `lib/env.ts` do not satisfy those scripts by themselves.
+- PostgreSQL schema is auto-created and evolved inside `lib/db.ts` via `ensureDatabaseSchema()`. There is no migrations directory.
+- `DATABASE_SCHEMA` changes the Postgres `search_path`; Wrangler sets different schemas for staging and production.
+- Storage defaults to `r2`. `STORAGE_DRIVER=local` is the local-only escape hatch; local files live under `data/storage`.
 
-## Runtime And Infra
-- `wrangler.jsonc` defines staging and production Workers, `APP_STORAGE` R2, OpenNext cache R2, self-service binding, Hyperdrive, and observability.
-- Current staging and production queue mode is `JOB_QUEUE_MODE=inline`.
-- Inline mode uses Worker `waitUntil` for submit/poll work and signed Hi3D callbacks for completion.
-- `JOB_QUEUE_MODE=redis` still exists for an external BullMQ worker, but it is not the current deployed default.
-- Worker-side preview GLB generation is disabled in Cloudflare deploys with `PREVIEW_GLB_GENERATION=disabled`.
-- Non-Worker runtimes can still use `DATABASE_URL`, `REDIS_URL`, and `R2_*` credentials directly.
+## Constraints Worth Preserving
+- Keep Hi3D callback verification and allowed result-host checks intact in `lib/hi3d-security.ts`.
+- Do not serve provider result URLs directly. `lib/job-runner.ts` downloads final assets into app-controlled storage before users can fetch them.
+- Generation creation must keep both ownership checks and wallet reservation before queueing the job.
+- `/api/health` stays protected by admin auth or `HEALTHCHECK_TOKEN`.
 
-## Core Files
-- `app/page.tsx` - sample marquee plus upload entry.
-- `app/profile/page.tsx` - authenticated wallet/jobs view.
-- `app/admin/page.tsx` - admin jobs table and wallet controls.
-- `lib/job-runner.ts` - Hi3D submit/query/callback handling, stored result download, wallet debit.
-- `lib/queue.ts` - inline vs Redis queue dispatch.
-- `lib/storage.ts` - local/R2 read-write helpers and trusted result fetches.
-- `lib/store.ts` - PostgreSQL persistence for users, assets, jobs, events, wallet ledger.
-- `lib/hi3d-security.ts` - callback verification and allowed result-host checks.
-- `lib/cloudflare.ts` - OpenNext Cloudflare context, R2 binding, Hyperdrive binding.
-- `scripts/load-env.ts` - local script env loading; ignores empty exported vars so `.env.local` can fill them.
+## Sample Asset Gotchas
+- Sample showcase files are allowlisted in `app/api/assets/samples/[name]/route.ts`; adding a new sample means updating that list.
+- Preview GLBs are generated with `npm run previews:generate` into `data/storage/samples`.
+- Preview requests intentionally stay on the app route so missing preview files can fall back to the original sample asset.
 
-## User Flow
-1. User signs in or registers.
-2. User uploads validated image files through `/api/uploads`.
-3. UI calls `/api/generations`; ownership and wallet checks run before the job is created.
-4. Inline Worker flow or external worker submits to Hi3D, tracks status, and handles signed callbacks.
-5. The app downloads the final `.glb` into app-controlled storage, records assets/events, and debits the wallet on completion.
-6. User downloads the stored result from `/api/generations/[jobId]/download`.
-
-## Security Rules
-- Keep Hi3D credentials and callback secrets server-side only.
-- Preserve asset/job ownership checks on all asset and generation routes.
-- Do not reintroduce client-controlled identity shortcuts such as `x-demo-user`.
-- Keep `/api/health` protected by admin auth or `HEALTHCHECK_TOKEN`.
-- Keep signed callback verification and trusted result-host checks intact.
-- Do not serve transient Hi3D result URLs directly; always download into app-controlled storage first.
-
-## Local Dev And Quality
-- Typical local flow: `cp .env.example .env.local`, `npm install`, `docker compose up -d`, `npm run seed-admin`, `npm run worker`, `npm run dev`.
-- Local/test defaults fill `AUTH_SECRET`, `DATABASE_URL`, and `REDIS_URL` when needed.
-- `HI3D_MODE=mock` is the normal local mode.
-- Tests live under `tests/**/*.test.ts`; current coverage includes auth utils, env/loading, Hi3D client/security, sample assets, storage, validation, and wallet behavior.
-- Quality gates: `npm run lint`, `npm test`, `npm run build`.
-
-## Beads
-- Use `bd` for task tracking, not markdown TODOs.
-- Start sessions with `bd prime`; inspect work with `bd ready` / `bd show <id>`.
-- Claim with `bd update <id> --claim`, close with `bd close <id>`, persist notes with `bd remember`.
-- If you change code, finish with quality gates, update beads, then `git pull --rebase`, `bd dolt push`, and `git push`.
+## Repo Workflow
+- This repo uses `bd` for task tracking. Run `bd prime` for the local workflow before working from beads.

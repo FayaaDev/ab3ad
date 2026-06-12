@@ -1,8 +1,8 @@
 'use client';
 
-import Script from 'next/script';
 import { createElement } from 'react';
 
+import { ModelViewerScript } from '@/components/model-viewer-script';
 import { Marquee } from '@/components/ui/marquee';
 import { messages } from '@/lib/messages';
 
@@ -11,9 +11,10 @@ type PreviewModel = {
   caption: string;
   finish?: string;
   src: string;
+  scale?: number;
 };
 
-function PreviewCard({ title, caption, finish, src }: PreviewModel) {
+function PreviewCard({ title, caption, finish, src, scale }: PreviewModel) {
   return (
     <figure
       dir="rtl"
@@ -40,6 +41,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
           autoplay: true,
           'auto-rotate': true,
           'rotation-per-second': '18deg',
+          ...(scale ? { scale: `${scale} ${scale} ${scale}` } : {}),
         })}
         <div className="pointer-events-none absolute start-4 top-4 rounded-full border border-white/20 bg-black/30 px-3 py-1 text-[10px] tracking-[0.18em] text-white/80">
           {messages.modelMarquee.assetBadge}
@@ -59,12 +61,7 @@ function PreviewCard({ title, caption, finish, src }: PreviewModel) {
 export function ModelMarquee({ models }: { models: PreviewModel[] }) {
   return (
     <>
-      <Script
-        type="module"
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
+      <ModelViewerScript />
       <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-2 py-4 shadow-[0_30px_100px_rgba(0,0,0,0.28)]">
         <div className="mb-4 px-6 pt-4">
           <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{messages.modelMarquee.eyebrow}</p>

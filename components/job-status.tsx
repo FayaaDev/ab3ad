@@ -1,9 +1,9 @@
 'use client';
 
-import Script from 'next/script';
 import { createElement, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowRight, Download, Layers3, RefreshCcw, Sparkles } from 'lucide-react';
 
+import { ModelViewerScript } from '@/components/model-viewer-script';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { formatDateTime, formatEventLabel, formatNumber, formatStatusLabel, formatTime } from '@/lib/locale';
 import { interpolate, messages } from '@/lib/messages';
@@ -98,12 +98,7 @@ export function JobStatus({ jobId }: { jobId: string }) {
 
   return (
     <>
-      <Script
-        type="module"
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
+      <ModelViewerScript />
       <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
         <div className="space-y-6">
           <section className="overflow-hidden rounded-[2.4rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_26px_90px_rgba(0,0,0,0.26)]">

@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { getHi3DResult, getHi3DStatus, getHi3DTaskId } from '../lib/hi3d-contract';
 import { HI3D_LOW_BALANCE_MESSAGE, getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryBalance, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
-import { getNextPollDelay } from '../lib/job-runner';
+import { getNextPollDelay, shouldRefreshActiveJob } from '../lib/job-runner';
 import type { FileAsset, GenerationJob } from '../lib/types';
 
 const originalFetch = global.fetch;
@@ -145,6 +145,35 @@ test('mock poll cadence stretches with configured duration', () => {
     assert.equal(getNextPollDelay(1), 250);
   } finally {
     restoreEnv(previousEnv);
+  }
+});
+
+test('active jobs do not refresh before the scheduled provider poll time', () => {
+  const previousNow = Date.now;
+  const now = Date.parse('2026-06-12T10:31:00.000Z');
+
+  try {
+    Date.now = () => now;
+    assert.equal(
+      shouldRefreshActiveJob({
+        status: 'processing',
+        updatedAt: '2026-06-12T10:30:45.000Z',
+        providerTaskId: 'task-1',
+        nextPollAt: '2026-06-12T10:31:30.000Z',
+      }),
+      false,
+    );
+    assert.equal(
+      shouldRefreshActiveJob({
+        status: 'processing',
+        updatedAt: '2026-06-12T10:30:45.000Z',
+        providerTaskId: 'task-1',
+        nextPollAt: '2026-06-12T10:30:59.000Z',
+      }),
+      true,
+    );
+  } finally {
+    Date.now = previousNow;
   }
 });
 

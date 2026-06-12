@@ -74,6 +74,12 @@
         "title": "سالم الدوسري",
         "caption": "التورنيدو",
         "src": "/api/assets/samples/SalimHilal.glb"
+      },
+      {
+        "title": "محمد الدعيع",
+        "caption": "العميد",
+        "src": "/api/assets/samples/daeed.glb",
+        "scale": 0.65
       }
     ]
   },

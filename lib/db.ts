@@ -6,8 +6,14 @@ let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
 function requireDatabaseUrl() {
+  const directConnectionString = process.env.DATABASE_URL;
+
   // Let local `.env.local` override Wrangler's Hyperdrive local connection string.
-  return process.env.DATABASE_URL || getHyperdriveConnectionString() || getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
+  if (process.env.NODE_ENV !== 'production' && directConnectionString) {
+    return directConnectionString;
+  }
+
+  return getHyperdriveConnectionString() || directConnectionString || getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
 }
 
 function getDatabaseSchema() {
@@ -114,6 +120,7 @@ export async function ensureDatabaseSchema() {
           error_code text,
           error_message text,
           poll_attempts integer not null default 0,
+          next_poll_at timestamptz,
           created_at timestamptz not null default now(),
           updated_at timestamptz not null default now(),
           completed_at timestamptz
@@ -125,6 +132,7 @@ export async function ensureDatabaseSchema() {
         alter table generation_jobs add column if not exists settlement_state text not null default 'unreserved';
         alter table generation_jobs add column if not exists preview_asset_id text references file_assets(id) on delete set null;
         alter table generation_jobs add column if not exists poll_attempts integer not null default 0;
+        alter table generation_jobs add column if not exists next_poll_at timestamptz;
         update generation_jobs
         set provider_id = coalesce(provider_id, 'hi3d'),
             provider_task_id = coalesce(provider_task_id, hi3d_task_id),

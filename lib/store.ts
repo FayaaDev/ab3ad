@@ -81,6 +81,7 @@ function mapGenerationJob(row: RowRecord): GenerationJob {
     errorCode: row.error_code ? String(row.error_code) : undefined,
     errorMessage: row.error_message ? String(row.error_message) : undefined,
     pollAttempts: row.poll_attempts ? Number(row.poll_attempts) : 0,
+    nextPollAt: row.next_poll_at ? new Date(String(row.next_poll_at)).toISOString() : undefined,
     createdAt: new Date(String(row.created_at)).toISOString(),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
     completedAt: row.completed_at ? new Date(String(row.completed_at)).toISOString() : undefined,
@@ -233,11 +234,11 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
       insert into generation_jobs (
         id, user_id, asset_ids, mode, status, provider_id, provider_task_id, provider_options, pricing_snapshot, settlement_state,
         model, resolution, face_count, pbr, output_format,
-        hi3d_task_id, result_asset_id, preview_asset_id, cover_asset_id, error_code, error_message, poll_attempts, created_at, updated_at, completed_at
+        hi3d_task_id, result_asset_id, preview_asset_id, cover_asset_id, error_code, error_message, poll_attempts, next_poll_at, created_at, updated_at, completed_at
       ) values (
         $1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10,
         $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
+        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
       )
       returning *
     `,
@@ -264,6 +265,7 @@ export async function createGenerationJob(job: Omit<GenerationJob, 'id' | 'creat
       created.errorCode ?? null,
       created.errorMessage ?? null,
       created.pollAttempts ?? 0,
+      created.nextPollAt ?? null,
       created.createdAt,
       created.updatedAt,
       created.completedAt ?? null,
@@ -296,6 +298,7 @@ export async function updateGenerationJob(jobId: string, patch: Partial<Generati
     ['errorCode', 'error_code'],
     ['errorMessage', 'error_message'],
     ['pollAttempts', 'poll_attempts'],
+    ['nextPollAt', 'next_poll_at'],
     ['completedAt', 'completed_at'],
   ];
 
