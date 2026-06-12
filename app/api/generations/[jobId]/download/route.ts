@@ -28,7 +28,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ jobId: str
     const buffer = await readStorageObject(asset.storageKey);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        'content-type': 'model/gltf-binary',
+        'content-type': asset.mimeType || 'application/octet-stream',
         'content-disposition': `attachment; filename="${path.basename(asset.originalFilename)}"`,
       },
     });

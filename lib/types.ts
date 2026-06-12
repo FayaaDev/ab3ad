@@ -7,21 +7,32 @@ export type ViewRole = 'single' | (typeof MULTI_VIEW_ROLES)[number];
 export type GenerationMode = 'single_image' | 'multi_view';
 export type OutputFormat = 'glb' | 'obj' | 'stl' | 'fbx' | 'usdz';
 export type QualityPreset = 'fast' | 'high';
+export type ProviderId = 'hi3d' | 'printpal';
 
 export type JobStatus =
   | 'draft'
   | 'uploaded'
   | 'queued'
-  | 'submitted_to_hi3d'
-  | 'hi3d_created'
-  | 'hi3d_queueing'
-  | 'hi3d_processing'
+  | 'submitting'
+  | 'submitted'
+  | 'processing'
   | 'downloading_result'
   | 'result_download_failed'
   | 'completed'
   | 'failed'
   | 'expired'
   | 'cancelled';
+
+export type WalletSettlementState = 'unreserved' | 'reserved' | 'settled' | 'refunded';
+
+export interface ProviderPricingSnapshot {
+  providerId: ProviderId;
+  credits: number;
+  quality: QualityPreset;
+  mode: GenerationMode;
+  outputFormat: OutputFormat;
+  providerRateLabel: string;
+}
 
 export interface User {
   id: string;
@@ -50,12 +61,16 @@ export interface GenerationJob {
   assetIds: string[];
   mode: GenerationMode;
   status: JobStatus;
+  providerId: ProviderId;
+  providerTaskId?: string;
+  providerOptions: Record<string, unknown>;
+  pricingSnapshot?: ProviderPricingSnapshot;
+  settlementState: WalletSettlementState;
   model: string;
   resolution: string;
   faceCount: string;
   pbr: boolean;
   outputFormat: OutputFormat;
-  hi3dTaskId?: string;
   resultAssetId?: string;
   previewAssetId?: string;
   coverAssetId?: string;
@@ -75,7 +90,13 @@ export interface JobEvent {
   createdAt: string;
 }
 
-export const WALLET_EVENT_TYPES = ['wallet_deposit', 'admin_credit_grant', 'generation_completed'] as const;
+export const WALLET_EVENT_TYPES = [
+  'wallet_deposit',
+  'admin_credit_grant',
+  'generation_reserved',
+  'generation_settled',
+  'generation_refunded',
+] as const;
 export type WalletEventType = (typeof WALLET_EVENT_TYPES)[number];
 
 export interface BillingEvent {
@@ -84,6 +105,7 @@ export interface BillingEvent {
   jobId?: string;
   eventType: WalletEventType;
   creditDelta: number;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 

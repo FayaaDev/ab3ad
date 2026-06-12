@@ -6,6 +6,7 @@ import { after, test } from 'node:test';
 import { v4 as uuid } from 'uuid';
 import { closePoolForTests, getPool } from '../lib/db';
 import { retryFailedJob } from '../lib/job-runner';
+import { createPricingSnapshot } from '../lib/providers';
 import { readStorageObject } from '../lib/storage';
 import {
   createFileAsset,
@@ -16,6 +17,8 @@ import {
   getWalletBalance,
   listWalletEvents,
   recordWalletEvent,
+  reserveGenerationCredits,
+  settleGenerationCredits,
 } from '../lib/store';
 import { submitTask } from '../lib/hi3d-client';
 import { assertCanStartGeneration } from '../lib/wallet';
@@ -24,6 +27,7 @@ Object.assign(process.env, { NODE_ENV: 'test' });
 
 const createdUserIds: string[] = [];
 const originalFetch = global.fetch;
+const hi3dSnapshot = createPricingSnapshot({ providerId: 'hi3d', mode: 'single_image', quality: 'fast', outputFormat: 'glb' });
 
 function restoreEnv(previousEnv: NodeJS.ProcessEnv) {
   for (const key of Object.keys(process.env)) {
@@ -64,15 +68,19 @@ async function createTestAsset(userId: string) {
   });
 }
 
-async function createTestJob(userId: string, status: 'queued' | 'completed' | 'failed' = 'queued') {
+async function createTestJob(userId: string, status: 'queued' | 'completed' | 'failed' | 'result_download_failed' = 'queued') {
   const asset = await createTestAsset(userId);
   return createGenerationJob({
     userId,
     assetIds: [asset.id],
     mode: 'single_image',
     status,
+    providerId: 'hi3d',
+    providerOptions: { model: 'hitem3dv2.1', quality: 'fast', resolution: '1536fast', faceCount: '800000', pbr: true },
+    pricingSnapshot: hi3dSnapshot,
+    settlementState: 'unreserved',
     model: 'hitem3dv2.1',
-    resolution: '1536pro',
+    resolution: '1536fast',
     faceCount: '800000',
     pbr: true,
     outputFormat: 'glb',
@@ -86,7 +94,7 @@ after(async () => {
   await closePoolForTests();
 });
 
-test('wallet ledger supports nullable deposits and derives balance from credit deltas', async () => {
+test('wallet ledger supports deposits and derives balance from credit deltas', async () => {
   const user = await createTestUser('ledger');
 
   assert.equal(await getWalletBalance(user.id), 0);
@@ -103,51 +111,41 @@ test('wallet ledger supports nullable deposits and derives balance from credit d
   assert.deepEqual(new Set(events.map((event) => event.eventType)), new Set(['wallet_deposit', 'admin_credit_grant']));
 });
 
-test('admin adjustments can deduct credits without forcing a job id', async () => {
-  const user = await createTestUser('admin-adjust');
+test('generation reservations reduce available balance and settlement does not double charge', async () => {
+  const user = await createTestUser('reserve');
+  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 3 });
 
-  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 5 });
-  const adjustment = await recordWalletEvent({ userId: user.id, eventType: 'admin_credit_grant', creditDelta: -2 });
+  const job = await createTestJob(user.id);
+  await reserveGenerationCredits({ userId: user.id, jobId: job.id, credits: hi3dSnapshot.credits, pricingSnapshot: hi3dSnapshot });
 
-  assert.equal(adjustment.jobId, undefined);
-  assert.equal(await getWalletBalance(user.id), 3);
-});
+  assert.equal(await getWalletBalance(user.id), 2);
+  await settleGenerationCredits({ userId: user.id, jobId: job.id, pricingSnapshot: hi3dSnapshot });
+  assert.equal(await getWalletBalance(user.id), 2);
 
-test('uploads and asset persistence remain allowed with zero balance while generation start is blocked', async () => {
-  const user = await createTestUser('zero');
-  const asset = await createTestAsset(user.id);
-
-  assert.equal(await getWalletBalance(user.id), 0);
-  assert.equal(asset.userId, user.id);
-  await assert.rejects(() => assertCanStartGeneration(user.id), /Insufficient credits/);
-});
-
-test('generation eligibility opens after deposit and successful jobs debit exactly one credit', async () => {
-  const user = await createTestUser('generation');
-  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 1 });
-
-  assert.equal(await assertCanStartGeneration(user.id), 1);
-
-  const job = await createTestJob(user.id, 'completed');
-  await recordWalletEvent({ userId: user.id, jobId: job.id, eventType: 'generation_completed', creditDelta: -1 });
-
-  assert.equal(await getWalletBalance(user.id), 0);
   await assert.rejects(
-    () => recordWalletEvent({ userId: user.id, jobId: job.id, eventType: 'generation_completed', creditDelta: -1 }),
+    () => settleGenerationCredits({ userId: user.id, jobId: job.id, pricingSnapshot: hi3dSnapshot }),
     /duplicate key|unique/i,
   );
 });
 
-test('failed jobs do not debit the wallet ledger', async () => {
-  const user = await createTestUser('failed');
-  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 3 });
-  await createTestJob(user.id, 'failed');
+test('concurrent spending guard blocks starts that exceed the remaining balance', async () => {
+  const user = await createTestUser('guard');
+  await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 1 });
 
-  assert.equal(await getWalletBalance(user.id), 3);
-  assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_completed').length, 0);
+  const firstJob = await createTestJob(user.id);
+  await reserveGenerationCredits({ userId: user.id, jobId: firstJob.id, credits: hi3dSnapshot.credits, pricingSnapshot: hi3dSnapshot });
+
+  assert.equal(await getWalletBalance(user.id), 0);
+  await assert.rejects(() => assertCanStartGeneration(user.id, hi3dSnapshot.credits), /Insufficient credits/);
+
+  const secondJob = await createTestJob(user.id);
+  await assert.rejects(
+    () => reserveGenerationCredits({ userId: user.id, jobId: secondJob.id, credits: hi3dSnapshot.credits, pricingSnapshot: hi3dSnapshot }),
+    /Insufficient credits/i,
+  );
 });
 
-test('retry can recover a failed result download into a downloadable glb', async () => {
+test('result-download recovery keeps the original settled wallet state intact', async () => {
   const previousEnv = { ...process.env };
   const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-retry-'));
 
@@ -158,6 +156,7 @@ test('retry can recover a failed result download into a downloadable glb', async
     process.env.STORAGE_DRIVER = 'local';
     process.env.STORAGE_ROOT = storageRoot;
     process.env.HI3D_ALLOWED_RESULT_HOSTS = 'dummyimage.com';
+    process.env.JOB_QUEUE_MODE = 'inline';
 
     global.fetch = async (input: string | URL | Request) => {
       const url = String(input instanceof Request ? input.url : input);
@@ -180,8 +179,12 @@ test('retry can recover a failed result download into a downloadable glb', async
       assetIds: [asset.id],
       mode: 'single_image',
       status: 'queued',
+      providerId: 'hi3d',
+      providerOptions: { model: 'hitem3dv2.1', quality: 'fast', resolution: '1536fast', faceCount: '800000', pbr: true },
+      pricingSnapshot: hi3dSnapshot,
+      settlementState: 'unreserved',
       model: 'hitem3dv2.1',
-      resolution: '1536pro',
+      resolution: '1536fast',
       faceCount: '800000',
       pbr: true,
       outputFormat: 'glb',
@@ -194,12 +197,16 @@ test('retry can recover a failed result download into a downloadable glb', async
       assetIds: [asset.id],
       mode: 'single_image',
       status: 'result_download_failed',
+      providerId: 'hi3d',
+      providerTaskId: task.taskId,
+      providerOptions: queuedJob.providerOptions,
+      pricingSnapshot: hi3dSnapshot,
+      settlementState: 'settled',
       model: queuedJob.model,
       resolution: queuedJob.resolution,
       faceCount: queuedJob.faceCount,
       pbr: queuedJob.pbr,
       outputFormat: queuedJob.outputFormat,
-      hi3dTaskId: task.taskId,
       errorCode: 'result_download_failed',
       errorMessage: 'Timed out downloading result',
     });
@@ -218,7 +225,7 @@ test('retry can recover a failed result download into a downloadable glb', async
     assert.equal((await readStorageObject(resultAsset!.storageKey)).toString('utf8'), 'mock-glb-data');
 
     assert.equal(await getWalletBalance(user.id), 2);
-    assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_completed').length, 0);
+    assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_settled').length, 0);
   } finally {
     restoreEnv(previousEnv);
     global.fetch = originalFetch;

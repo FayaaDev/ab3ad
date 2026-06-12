@@ -1,17 +1,18 @@
 import path from 'node:path';
 import { z } from 'zod';
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_BYTES, MULTI_VIEW_ROLES } from '@/lib/types';
-import type { FileAsset, GenerationMode } from '@/lib/types';
+import type { FileAsset, GenerationMode, ProviderId, QualityPreset } from '@/lib/types';
 
 const allowedMimeTypeSet = new Set(ALLOWED_MIME_TYPES);
 const singleExtensions = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 
 export const generationSchema = z.object({
+  providerId: z.enum(['hi3d', 'printpal']).default('hi3d'),
   assetIds: z.array(z.string().min(1)).min(1).max(4),
   mode: z.enum(['single_image', 'multi_view']),
   model: z.string().default('hitem3dv2.1'),
   quality: z.enum(['fast', 'high']).default('fast'),
-  outputFormat: z.enum(['glb']).default('glb'),
+  outputFormat: z.enum(['glb', 'obj', 'stl', 'fbx']).default('glb'),
   pbr: z.boolean().default(true),
 });
 
@@ -81,10 +82,27 @@ export function validateAssetsForMode(mode: GenerationMode, assets: FileAsset[])
   }
 }
 
-export function qualityToResolution(quality: 'fast' | 'high') {
+export function qualityToResolution(quality: QualityPreset) {
   return quality === 'fast' ? '1536fast' : '1536pro';
 }
 
 export function normalizeHi3DFaceCount(faceCount: string) {
   return faceCount === 'standard' ? DEFAULT_SINGLE_IMAGE_FACE_COUNT : faceCount;
+}
+
+export function buildProviderOptions(input: { providerId: ProviderId; mode: GenerationMode; model: string; quality: QualityPreset; pbr: boolean }) {
+  if (input.providerId === 'hi3d') {
+    return {
+      model: input.model,
+      quality: input.quality,
+      resolution: qualityToResolution(input.quality),
+      faceCount: input.mode === 'single_image' ? DEFAULT_SINGLE_IMAGE_FACE_COUNT : 'high',
+      pbr: input.pbr,
+    };
+  }
+
+  return {
+    quality: input.quality,
+    pbr: input.pbr,
+  };
 }

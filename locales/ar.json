@@ -80,17 +80,20 @@
   "uploadForm": {
     "unnamedFile": "ملف بدون اسم",
     "genericFile": "الملف",
-    "title": "",
-    "mockModeNote": "",
+    "title": "اختر المزوّد وخيارات الإخراج قبل بدء التوليد",
+    "mockModeNote": "التسعير والخيارات تُحمّل من الخادم",
     "dropHereOr": "أسقط الصور هنا أو %{browse}",
     "browse": "تصفح الملفات",
     "dropzoneNote": "PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف",
+    "provider": "المزوّد",
     "mode": "الوضع",
     "modeSingle": "صورة واحدة إلى نموذج ثلاثي الأبعاد",
     "modeMulti": "عدة زوايا إلى نموذج ثلاثي الأبعاد",
     "quality": "الجودة",
     "qualityFast": "سريع",
     "qualityHigh": "عالية",
+    "outputFormat": "صيغة الإخراج",
+    "estimatedCost": "التكلفة التقديرية:",
     "multiViewWarning": "في النسخة الحالية يتم رفع المجموعة دفعة واحدة. ما زلنا بحاجة إلى إضافة تسميات صريحة للأمام والخلف واليمين واليسار قبل الاستخدام الإنتاجي.",
     "selectedFiles": "الملفات المحددة",
     "uploadSuccessSingular": "تم رفع ملف بنجاح.",
@@ -106,15 +109,17 @@
       "missingUploadResult": "لم تُرجع عملية الرفع نتيجة.",
       "uploadFailed": "فشل الرفع.",
       "missingAssetIds": "اكتمل الرفع، لكن لم يتم إرجاع معرّفات الملفات.",
-      "insufficientBalance": "لايوجد رصيد كافي.",
+      "insufficientBalance": "لا يوجد رصيد كافٍ.",
       "generationRequestFailed": "فشل طلب التوليد.",
-      "generationStartFailed": "تعذر بدء التوليد."
+      "generationStartFailed": "تعذر بدء التوليد.",
+      "loadProvidersFailed": "تعذر تحميل قائمة المزوّدين.",
+      "noProviders": "لا توجد مزوّدات متاحة حاليًا."
     }
   },
   "walletPanel": {
     "eyebrow": "المحفظة",
     "title": "رصيدك جاهز قبل التوليد.",
-    "description": "يمكنك رفع الصور بدون رصيد، لكن بدء التوليد يحتاج إلى رصيد واحد على الأقل. نخصم رصيدًا واحدًا فقط بعد نجاح المهمة.",
+    "description": "يمكنك رفع الصور بدون رصيد، لكن بدء التوليد يحتاج إلى رصيد يكفي للتكلفة المعروضة. نحجز الرصيد عند إنشاء المهمة ثم نثبّت الخصم عند اكتمالها أو نعيده عند الفشل.",
     "balance": "الرصيد الحالي",
     "fakeTopUp": "شحن تجريبي",
     "addCredits": "أضف الرصيد",
@@ -163,17 +168,12 @@
       {
         "label": "تم الإرسال",
         "percent": 25,
-        "statuses": ["submitted_to_hi3d"]
-      },
-      {
-        "label": "في الطابور",
-        "percent": 45,
-        "statuses": ["hi3d_created", "hi3d_queueing"]
+        "statuses": ["submitting", "submitted"]
       },
       {
         "label": "قيد المعالجة",
         "percent": 70,
-        "statuses": ["hi3d_processing"]
+        "statuses": ["processing"]
       },
       {
         "label": "جارٍ تجهيز الملف",
@@ -190,7 +190,7 @@
   "jobPage": {
     "eyebrow": "تقدّم المهمة",
     "title": "تابع سجل التوليد لحظة بلحظة.",
-    "description": "نعرض الإرسال، ومعالجة Ab3ad3d، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.",
+    "description": "نعرض الإرسال، ومعالجة المزوّد، والاستدعاءات الراجعة، وتنزيل النتيجة كسجل أحداث واضح بدلًا من عرض خام للطابور.",
     "reference": "مرجع",
     "jobId": "معرّف المهمة",
     "expectedOutput": "المخرجات المتوقعة",
@@ -252,7 +252,7 @@
   "adminWallet": {
     "eyebrow": "محافظ المستخدمين",
     "title": "رصيد وسجل الشحن لكل مستخدم.",
-    "description": "راقب الودائع، خصومات التوليد الناجحة، وحالات نقص الرصيد من نفس لوحة الدعم.",
+    "description": "راقب الودائع، الحجوزات، التسويات، والاستردادات من نفس لوحة الدعم.",
     "manualAdjustment": "تعديل رصيد يدوي",
     "emailPlaceholder": "بريد المستخدم",
     "amountPlaceholder": "+10 أو -10",
@@ -279,10 +279,9 @@
   },
   "statusLabels": {
     "queued": "في الانتظار",
-    "submitted_to_hi3d": "تم الإرسال إلى Ab3ad3d",
-    "hi3d_created": "تم إنشاء المهمة",
-    "hi3d_queueing": "في طابور Ab3ad3d",
-    "hi3d_processing": "قيد المعالجة",
+    "submitting": "جارٍ الإرسال",
+    "submitted": "تم الإرسال",
+    "processing": "قيد المعالجة",
     "downloading_result": "جارِ تنزيل النتيجة",
     "completed": "مكتمل",
     "failed": "فشل",
@@ -293,12 +292,11 @@
   "eventLabels": {
     "job_queued": "أُضيفت المهمة إلى الطابور",
     "submit_started": "بدأ تجهيز الإرسال",
-    "submitted_to_hi3d": "تم الإرسال إلى Ab3ad3d",
-    "hi3d_created": "أنشأ Ab3ad3d المهمة",
-    "hi3d_queueing": "المهمة في طابور Ab3ad3d",
-    "hi3d_processing": "Ab3ad3d يعالج النموذج",
-    "hi3d_success": "أعاد Ab3ad3d النتيجة",
-    "hi3d_refresh_failed": "فشل تحديث حالة Ab3ad3d",
+    "provider_submitted": "تم إرسال المهمة إلى المزوّد",
+    "provider_processing": "المزوّد يعالج النموذج",
+    "provider_succeeded": "أعاد المزوّد النتيجة",
+    "provider_failed": "فشلت المهمة لدى المزوّد",
+    "provider_refresh_failed": "فشل تحديث حالة المزوّد",
     "job_failed": "فشلت المهمة",
     "download_started": "بدأ تنزيل النتيجة",
     "download_failed": "فشل تنزيل النتيجة",
@@ -311,6 +309,8 @@
     "job_retried": "أُعيدت محاولة المهمة",
     "wallet_deposit": "شحن رصيد تجريبي",
     "admin_credit_grant": "تعديل رصيد من المشرف",
-    "generation_completed": "خصم توليد ناجح"
+    "generation_reserved": "حُجز رصيد المهمة",
+    "generation_settled": "تمت تسوية خصم المهمة",
+    "generation_refunded": "أُعيد رصيد المهمة"
   }
 }

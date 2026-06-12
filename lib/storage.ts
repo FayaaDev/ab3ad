@@ -3,7 +3,6 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getR2BucketBinding } from '@/lib/cloudflare';
-import { assertTrustedResultUrl } from '@/lib/hi3d-security';
 
 type StorageDriver = 'local' | 'r2';
 
@@ -199,7 +198,6 @@ export async function readStorageObject(storageKey: string) {
 }
 
 export async function fetchToStorage(storageKey: string, sourceUrl: string, contentType = 'application/octet-stream') {
-  assertTrustedResultUrl(sourceUrl);
   const response = await fetchWithTimeout(sourceUrl);
   if (!response.ok) {
     throw new Error(`Failed to download result: ${response.status}`);

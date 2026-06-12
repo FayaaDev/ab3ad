@@ -67,8 +67,8 @@ test('showcased MajidAbdullah sample resolves to the preview route', () => {
   const model = getModelMarqueeModels().find((entry) => entry.src.includes('MajidAbdullah'));
 
   assert.ok(model);
-  assert.equal(model.title, 'نموذج');
-  assert.equal(model.caption, 'عرض ثلاثي الأبعاد');
+  assert.equal(model.title, 'ماجد عبدالله');
+  assert.equal(model.caption, 'أسطورة الكورة السعودية');
   assert.equal(model.src, '/api/assets/samples/MajidAbdullah.preview-v1.glb');
 });
 
@@ -76,8 +76,8 @@ test('showcased SalimHilal sample resolves to the preview route', () => {
   const model = getModelMarqueeModels().find((entry) => entry.src.includes('SalimHilal'));
 
   assert.ok(model);
-  assert.equal(model.title, 'نموذج');
-  assert.equal(model.caption, 'مجسم ثلاثي الأبعاد');
+  assert.equal(model.title, 'سالم الدوسري');
+  assert.equal(model.caption, 'التورنيدو');
   assert.equal(model.src, '/api/assets/samples/SalimHilal.preview-v1.glb');
 });
 

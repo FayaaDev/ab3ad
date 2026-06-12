@@ -36,11 +36,10 @@ export async function fileToBuffer(file: File) {
 export function mapHi3DStatus(status: 'created' | 'queueing' | 'processing' | 'success' | 'failed') {
   switch (status) {
     case 'created':
-      return 'hi3d_created';
+      return 'submitted';
     case 'queueing':
-      return 'hi3d_queueing';
     case 'processing':
-      return 'hi3d_processing';
+      return 'processing';
     case 'success':
       return 'downloading_result';
     case 'failed':
@@ -48,10 +47,23 @@ export function mapHi3DStatus(status: 'created' | 'queueing' | 'processing' | 's
   }
 }
 
-export const activeGenerationStatuses = ['queued', 'submitted_to_hi3d', 'hi3d_created', 'hi3d_queueing', 'hi3d_processing', 'downloading_result'] as const;
+export function normalizeJobStatus(status: string) {
+  switch (status) {
+    case 'submitted_to_hi3d':
+      return 'submitted';
+    case 'hi3d_created':
+    case 'hi3d_queueing':
+    case 'hi3d_processing':
+      return 'processing';
+    default:
+      return status;
+  }
+}
+
+export const activeGenerationStatuses = ['queued', 'submitting', 'submitted', 'processing', 'downloading_result'] as const;
 
 export function isActiveGenerationStatus(status: string) {
-  return activeGenerationStatuses.includes(status as (typeof activeGenerationStatuses)[number]);
+  return activeGenerationStatuses.includes(normalizeJobStatus(status) as (typeof activeGenerationStatuses)[number]);
 }
 
 export async function sleep(ms: number) {
