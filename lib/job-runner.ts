@@ -26,6 +26,8 @@ import type { FileAsset, GenerationJob } from '@/lib/types';
 import { isActiveGenerationStatus, nowIso } from '@/lib/utils';
 
 const realPollSchedule = [10_000, 20_000, 30_000, 60_000, 120_000, 120_000, 120_000, 120_000];
+const defaultRealMaxPollAttempts = realPollSchedule.length + 10;
+const defaultMockMaxPollAttempts = 10;
 
 function getMockPollSchedule() {
   const intervalMs = Math.max(250, Math.ceil(getMockHi3DDurationMs() / 6 / 250) * 250);
@@ -37,9 +39,13 @@ export function getNextPollDelay(pollAttempts = 0) {
   return schedule[Math.min(pollAttempts, schedule.length - 1)];
 }
 
-function getMaxPollAttempts() {
-  const schedule = process.env.HI3D_MODE === 'mock' ? getMockPollSchedule() : realPollSchedule;
-  return Number(process.env.PROVIDER_MAX_POLL_ATTEMPTS ?? process.env.HI3D_MAX_POLL_ATTEMPTS ?? String(schedule.length + 2)) || schedule.length + 2;
+export function getMaxPollAttempts() {
+  const configuredMaxAttempts = Number(process.env.PROVIDER_MAX_POLL_ATTEMPTS ?? process.env.HI3D_MAX_POLL_ATTEMPTS ?? '');
+  if (configuredMaxAttempts > 0) {
+    return configuredMaxAttempts;
+  }
+
+  return process.env.HI3D_MODE === 'mock' ? defaultMockMaxPollAttempts : defaultRealMaxPollAttempts;
 }
 
 function getQueryRefreshMinAgeMs() {
@@ -51,6 +57,19 @@ export function shouldRefreshActiveJob(job: { status: string; updatedAt: string;
     return false;
   }
   if (job.status !== 'queued' && !job.providerTaskId) {
+    return false;
+  }
+
+  const updatedAtMs = Date.parse(job.updatedAt);
+  const nextPollAtMs = 'nextPollAt' in job && job.nextPollAt ? Date.parse(job.nextPollAt) : Number.NaN;
+  if (!Number.isNaN(nextPollAtMs)) {
+    return Date.now() >= nextPollAtMs;
+  }
+  return Number.isNaN(updatedAtMs) || Date.now() - updatedAtMs >= getQueryRefreshMinAgeMs();
+}
+
+function shouldRefreshTimedOutJob(job: { status: string; updatedAt: string; providerTaskId?: string; resultAssetId?: string; nextPollAt?: string; errorCode?: string }) {
+  if (job.resultAssetId || job.status !== 'failed' || job.errorCode !== 'provider_poll_timeout' || !job.providerTaskId) {
     return false;
   }
 
@@ -207,7 +226,13 @@ export async function processJob(jobId: string) {
 
 export async function refreshActiveJob(jobId: string) {
   const { job } = await getJobWithAssets(jobId);
-  if (!job || job.status === 'completed' || job.resultAssetId || !isActiveGenerationStatus(job.status)) {
+  if (!job || job.status === 'completed' || job.resultAssetId) {
+    return;
+  }
+
+  const canRefreshActiveJob = isActiveGenerationStatus(job.status);
+  const canRefreshTimedOutJob = shouldRefreshTimedOutJob(job);
+  if (!canRefreshActiveJob && !canRefreshTimedOutJob) {
     return;
   }
 
@@ -227,8 +252,8 @@ export async function refreshActiveJob(jobId: string) {
   }
 }
 
-export async function scheduleActiveJobRefresh(job: { id: string; status: string; updatedAt: string; providerTaskId?: string; resultAssetId?: string }) {
-  if (!shouldRefreshActiveJob(job)) {
+export async function scheduleActiveJobRefresh(job: { id: string; status: string; updatedAt: string; providerTaskId?: string; resultAssetId?: string; nextPollAt?: string; errorCode?: string }) {
+  if (!shouldRefreshActiveJob(job) && !shouldRefreshTimedOutJob(job)) {
     return false;
   }
 
@@ -378,6 +403,30 @@ async function downloadResult(job: GenerationJob, modelUrl: string, coverUrl?: s
       return;
     }
 
+    let settlementState = latest.job.settlementState;
+    if (settleWallet && latest.job.settlementState === 'refunded' && latest.job.pricingSnapshot) {
+      try {
+        await reserveGenerationCredits({
+          userId: latest.job.userId,
+          jobId: latest.job.id,
+          credits: latest.job.pricingSnapshot.credits,
+          pricingSnapshot: latest.job.pricingSnapshot,
+        });
+        settlementState = 'reserved';
+        await addJobEvent({ jobId: job.id, eventType: 'late_recovery_recharged', payload: { credits: latest.job.pricingSnapshot.credits } });
+      } catch (error) {
+        const errorMessage = normalizeProviderErrorMessage(error);
+        await updateGenerationJob(job.id, {
+          status: 'failed',
+          errorCode: 'late_recovery_charge_failed',
+          errorMessage,
+          nextPollAt: undefined,
+        });
+        await addJobEvent({ jobId: job.id, eventType: 'late_recovery_charge_failed', payload: { errorMessage } });
+        return;
+      }
+    }
+
     const provider = getProviderAdapter(latest.job.providerId);
     provider.assertResultUrl?.(modelUrl);
     if (coverUrl) {
@@ -440,7 +489,7 @@ async function downloadResult(job: GenerationJob, modelUrl: string, coverUrl?: s
         errorMessage: undefined,
         nextPollAt: undefined,
       });
-      if (settleWallet && latest.job.settlementState === 'reserved') {
+      if (settleWallet && settlementState === 'reserved') {
         await settleGenerationCredits({ jobId: job.id, userId: latest.job.userId, pricingSnapshot: latest.job.pricingSnapshot });
       }
       await addJobEvent({ jobId: job.id, eventType: 'job_completed', payload: { resultAssetId: modelAsset.id, previewAssetId: previewAsset?.id, coverAssetId } });

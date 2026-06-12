@@ -17,6 +17,7 @@ import {
   getWalletBalance,
   listWalletEvents,
   recordWalletEvent,
+  refundGenerationCredits,
   reserveGenerationCredits,
   settleGenerationCredits,
 } from '../lib/store';
@@ -226,6 +227,78 @@ test('result-download recovery keeps the original settled wallet state intact', 
 
     assert.equal(await getWalletBalance(user.id), 2);
     assert.equal((await listWalletEvents(user.id)).filter((event) => event.eventType === 'generation_settled').length, 0);
+  } finally {
+    restoreEnv(previousEnv);
+    global.fetch = originalFetch;
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
+});
+
+test('late recovery re-charges a refunded timed-out job before completing it', async () => {
+  const previousEnv = { ...process.env };
+  const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-late-recover-'));
+
+  try {
+    process.env.HI3D_MODE = 'mock';
+    process.env.HI3D_MOCK_DURATION_MS = '1';
+    process.env.PREVIEW_GLB_GENERATION = 'disabled';
+    process.env.STORAGE_DRIVER = 'local';
+    process.env.STORAGE_ROOT = storageRoot;
+    process.env.HI3D_ALLOWED_RESULT_HOSTS = 'dummyimage.com';
+    process.env.JOB_QUEUE_MODE = 'inline';
+
+    global.fetch = async (input: string | URL | Request) => {
+      const url = String(input instanceof Request ? input.url : input);
+      assert.match(url, /^https:\/\/dummyimage\.com\//);
+      return new Response(Buffer.from('cover-image'), {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+      });
+    };
+
+    const user = await createTestUser('late-recover');
+    await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 1 });
+
+    const asset = await createTestAsset(user.id);
+    await fs.mkdir(path.dirname(path.join(storageRoot, asset.storageKey)), { recursive: true });
+    await fs.writeFile(path.join(storageRoot, asset.storageKey), Buffer.from('source-image'));
+
+    const queuedJob = await createGenerationJob({
+      userId: user.id,
+      assetIds: [asset.id],
+      mode: 'single_image',
+      status: 'queued',
+      providerId: 'hi3d',
+      providerOptions: { model: 'hitem3dv2.1', quality: 'fast', resolution: '1536fast', faceCount: '800000', pbr: true },
+      pricingSnapshot: hi3dSnapshot,
+      settlementState: 'unreserved',
+      model: 'hitem3dv2.1',
+      resolution: '1536fast',
+      faceCount: '800000',
+      pbr: true,
+      outputFormat: 'glb',
+    });
+    await reserveGenerationCredits({ userId: user.id, jobId: queuedJob.id, credits: hi3dSnapshot.credits, pricingSnapshot: hi3dSnapshot });
+    const task = await submitTask(queuedJob, [asset]);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await refundGenerationCredits({ userId: user.id, jobId: queuedJob.id, credits: hi3dSnapshot.credits, reason: 'provider_poll_timeout', pricingSnapshot: hi3dSnapshot });
+
+    const retriedJob = await retryFailedJob(queuedJob.id);
+    assert.equal(retriedJob.id, queuedJob.id);
+    assert.equal(retriedJob.status, 'completed');
+
+    const storedJob = await getGenerationJob(queuedJob.id);
+    assert.equal(storedJob?.providerTaskId, task.taskId);
+    assert.equal(storedJob?.settlementState, 'settled');
+    assert.ok(storedJob?.resultAssetId);
+
+    assert.equal(await getWalletBalance(user.id), 0);
+
+    const walletEvents = await listWalletEvents(user.id);
+    assert.deepEqual(
+      walletEvents.map((event) => event.eventType),
+      ['wallet_deposit', 'generation_reserved', 'generation_refunded', 'generation_reserved', 'generation_settled'],
+    );
   } finally {
     restoreEnv(previousEnv);
     global.fetch = originalFetch;

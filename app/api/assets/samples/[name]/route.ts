@@ -7,6 +7,7 @@ const ORIGINAL_SAMPLE_ASSETS = [
   'Abdo-Ab3ad3d.glb',
   'daeed.glb',
   'dabbrini.glb',
+  'Gassibi.glb',
   'Mageed.glb',
   'MajidAbdullah.glb',
   'Sager-Ab3ad3d.glb',

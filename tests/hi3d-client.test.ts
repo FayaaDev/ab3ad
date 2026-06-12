@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { getHi3DResult, getHi3DStatus, getHi3DTaskId } from '../lib/hi3d-contract';
 import { HI3D_LOW_BALANCE_MESSAGE, getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryBalance, queryTask, resetHi3DClientState, submitTask } from '../lib/hi3d-client';
-import { getNextPollDelay, shouldRefreshActiveJob } from '../lib/job-runner';
+import { getMaxPollAttempts, getNextPollDelay, shouldRefreshActiveJob } from '../lib/job-runner';
 import type { FileAsset, GenerationJob } from '../lib/types';
 
 const originalFetch = global.fetch;
@@ -143,6 +143,22 @@ test('mock poll cadence stretches with configured duration', () => {
 
     process.env.HI3D_MOCK_DURATION_MS = '1500';
     assert.equal(getNextPollDelay(1), 250);
+  } finally {
+    restoreEnv(previousEnv);
+  }
+});
+
+test('real Hi3D polling window allows long-running jobs by default', () => {
+  const previousEnv = { ...process.env };
+  try {
+    delete process.env.HI3D_MODE;
+    delete process.env.PROVIDER_MAX_POLL_ATTEMPTS;
+    delete process.env.HI3D_MAX_POLL_ATTEMPTS;
+
+    assert.equal(getMaxPollAttempts(), 18);
+
+    const totalDelayMs = Array.from({ length: getMaxPollAttempts() - 1 }, (_, index) => getNextPollDelay(index + 1)).reduce((sum, delay) => sum + delay, 0);
+    assert.equal(totalDelayMs, 1_790_000);
   } finally {
     restoreEnv(previousEnv);
   }

@@ -23,7 +23,7 @@ Add or update showcased sample models using the existing preview GLB pipeline so
 4. Always add new sample models to the homepage showcase in `locales/ar.json`.
 5. Update the sample allowlist in `app/api/assets/samples/[name]/route.ts` so the sample route can serve both the original and preview filenames.
 6. Keep homepage/sample previews routed through `/api/assets/samples/*.preview-v1.glb` rather than pointing directly at an external sample host. This preserves server-side fallback behavior while preview files are being rolled out.
-7. If production is part of the task, upload the source sample `.glb` and the generated preview file to the production R2 `samples/` prefix using Cloudflare MCP before considering the work complete.
+7. Upload the source sample `.glb` and the generated preview file to the production R2 `samples/` prefix using Cloudflare MCP before considering the work complete.
 
 ## Files to check
 
@@ -56,6 +56,6 @@ For sample preview model work, also verify:
 
 - Do not add a showcased sample model without generating its preview asset.
 - Do not leave a new sample model out of the homepage showcase.
-- Do not skip uploading the source sample `.glb` and preview `.preview-v1.glb` to production when production is part of the task.
+- Do not skip uploading the source sample `.glb` and preview `.preview-v1.glb` to production.
 - Do not treat a production fallback response as success.
 - Do not mix homepage/sample showcase work with user job result download behavior. User downloads must remain the original full-size GLB.
