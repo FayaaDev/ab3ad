@@ -6,7 +6,8 @@ let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
 function requireDatabaseUrl() {
-  return getHyperdriveConnectionString() || process.env.DATABASE_URL || getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
+  // Let local `.env.local` override Wrangler's Hyperdrive local connection string.
+  return process.env.DATABASE_URL || getHyperdriveConnectionString() || getRequiredEnv('DATABASE_URL', 'Missing DATABASE_URL. Configure PostgreSQL before using the app.');
 }
 
 function getDatabaseSchema() {
@@ -96,6 +97,11 @@ export async function ensureDatabaseSchema() {
           asset_ids text[] not null,
           mode text not null,
           status text not null,
+          provider_id text,
+          provider_task_id text,
+          provider_options jsonb not null default '{}'::jsonb,
+          pricing_snapshot jsonb,
+          settlement_state text not null default 'unreserved',
           model text not null,
           resolution text not null,
           face_count text not null,
@@ -112,9 +118,24 @@ export async function ensureDatabaseSchema() {
           updated_at timestamptz not null default now(),
           completed_at timestamptz
         );
+        alter table generation_jobs add column if not exists provider_id text;
+        alter table generation_jobs add column if not exists provider_task_id text;
+        alter table generation_jobs add column if not exists provider_options jsonb not null default '{}'::jsonb;
+        alter table generation_jobs add column if not exists pricing_snapshot jsonb;
+        alter table generation_jobs add column if not exists settlement_state text not null default 'unreserved';
         alter table generation_jobs add column if not exists preview_asset_id text references file_assets(id) on delete set null;
         alter table generation_jobs add column if not exists poll_attempts integer not null default 0;
+        update generation_jobs
+        set provider_id = coalesce(provider_id, 'hi3d'),
+            provider_task_id = coalesce(provider_task_id, hi3d_task_id),
+            provider_options = case
+              when provider_options = '{}'::jsonb then jsonb_build_object('model', model, 'resolution', resolution, 'faceCount', face_count, 'pbr', pbr)
+              else provider_options
+            end,
+            settlement_state = case when settlement_state = 'unreserved' then 'settled' else settlement_state end
+        where provider_id is null or provider_task_id is null or provider_options = '{}'::jsonb;
         create index if not exists generation_jobs_user_id_idx on generation_jobs(user_id);
+        create index if not exists generation_jobs_provider_task_id_idx on generation_jobs(provider_task_id);
         create index if not exists generation_jobs_hi3d_task_id_idx on generation_jobs(hi3d_task_id);
         create index if not exists generation_jobs_created_at_idx on generation_jobs(created_at desc);
 
@@ -133,14 +154,22 @@ export async function ensureDatabaseSchema() {
           job_id text references generation_jobs(id) on delete cascade,
           event_type text not null,
           credit_delta integer not null,
+          metadata jsonb not null default '{}'::jsonb,
           created_at timestamptz not null default now()
         );
         alter table billing_events alter column job_id drop not null;
+        alter table billing_events add column if not exists metadata jsonb not null default '{}'::jsonb;
         create index if not exists billing_events_user_id_idx on billing_events(user_id, created_at desc);
         create index if not exists billing_events_job_id_idx on billing_events(job_id) where job_id is not null;
-        create unique index if not exists billing_events_generation_completed_once_idx
+        create unique index if not exists billing_events_generation_reserved_once_idx
           on billing_events(job_id, event_type)
-          where job_id is not null and event_type = 'generation_completed';
+          where job_id is not null and event_type = 'generation_reserved';
+        create unique index if not exists billing_events_generation_settled_once_idx
+          on billing_events(job_id, event_type)
+          where job_id is not null and event_type = 'generation_settled';
+        create unique index if not exists billing_events_generation_refunded_once_idx
+          on billing_events(job_id, event_type)
+          where job_id is not null and event_type = 'generation_refunded';
       `);
     })();
   }

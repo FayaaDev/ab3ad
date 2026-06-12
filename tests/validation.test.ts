@@ -39,16 +39,16 @@ test('multi-view mode requires front image and unique roles', () => {
   assert.throws(() => validateAssetsForMode('multi_view', [front, { ...front, id: 'front-2' }]));
 });
 
-test('Hi3D statuses map to internal states', () => {
-  assert.equal(mapHi3DStatus('created'), 'hi3d_created');
-  assert.equal(mapHi3DStatus('queueing'), 'hi3d_queueing');
-  assert.equal(mapHi3DStatus('processing'), 'hi3d_processing');
+test('Hi3D statuses map to provider-neutral internal states', () => {
+  assert.equal(mapHi3DStatus('created'), 'submitted');
+  assert.equal(mapHi3DStatus('queueing'), 'processing');
+  assert.equal(mapHi3DStatus('processing'), 'processing');
   assert.equal(mapHi3DStatus('success'), 'downloading_result');
   assert.equal(mapHi3DStatus('failed'), 'failed');
 });
 
 test('active generation statuses include query-refreshable states', () => {
-  assert.equal(isActiveGenerationStatus('hi3d_processing'), true);
+  assert.equal(isActiveGenerationStatus('processing'), true);
   assert.equal(isActiveGenerationStatus('downloading_result'), true);
   assert.equal(isActiveGenerationStatus('completed'), false);
   assert.equal(isActiveGenerationStatus('failed'), false);

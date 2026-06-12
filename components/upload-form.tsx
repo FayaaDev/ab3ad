@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Uppy from '@uppy/core';
 import { DragDrop } from '@uppy/react';
 import XHRUpload from '@uppy/xhr-upload';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import '@uppy/core/dist/style.min.css';
 import '@uppy/drag-drop/dist/style.min.css';
 
@@ -12,10 +12,6 @@ import { InlineGenerationProgress } from '@/components/inline-generation-progres
 import { Button } from '@/components/ui/button';
 import { interpolate, messages } from '@/lib/messages';
 import { cn } from '@/lib/utils';
-
-const DEFAULT_MODE = 'single_image';
-const DEFAULT_QUALITY = 'high';
-const ACTIVE_JOB_STORAGE_KEY = 'ab3ad:active-job-id';
 
 type UploadedAsset = {
   id: string;
@@ -28,10 +24,31 @@ type SelectedFile = {
   size: number;
 };
 
+type ProviderCatalogEntry = {
+  id: string;
+  label: string;
+  defaults: {
+    mode: string;
+    pbr: boolean;
+  };
+};
+
 type TerminalNotice = 'completed' | 'other' | null;
 
+const ACTIVE_JOB_STORAGE_KEY = 'ab3ad:active-job-id';
 const completedProfileMessage = 'اكتمل النموذج. يمكنك تنزيله من ملفك الشخصي.';
 const terminalProfileMessage = 'انتهت المهمة. يمكنك مراجعة التفاصيل من ملفك الشخصي.';
+const modelLabel = 'النموذج';
+
+function getProviderDisplayLabel(providerId: string) {
+  if (providerId === 'hi3d') {
+    return 'محرك الفا';
+  }
+  if (providerId === 'printpal') {
+    return 'محرك بيتا';
+  }
+  return providerId;
+}
 
 export function UploadForm() {
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
@@ -40,7 +57,15 @@ export function UploadForm() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [terminalNotice, setTerminalNotice] = useState<TerminalNotice>(null);
   const [error, setError] = useState<string | null>(null);
+  const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
+  const [providersLoaded, setProvidersLoaded] = useState(false);
+  const [providerId, setProviderId] = useState('hi3d');
   const uploadMessages = messages.uploadForm;
+
+  const selectedProvider = useMemo(
+    () => providerCatalog.find((provider) => provider.id === providerId) ?? providerCatalog[0] ?? null,
+    [providerCatalog, providerId],
+  );
 
   function resetUploadState() {
     setActiveJobId(null);
@@ -127,6 +152,38 @@ export function UploadForm() {
   }, [terminalNotice]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadProviders() {
+      try {
+        const response = await fetch('/api/providers');
+        const body = (await response.json()) as { providers?: ProviderCatalogEntry[]; error?: string };
+        if (!response.ok || !body.providers?.length) {
+          throw new Error(body.error || uploadMessages.errors.loadProvidersFailed);
+        }
+
+        if (!cancelled) {
+          setProviderCatalog(body.providers);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : uploadMessages.errors.loadProvidersFailed);
+        }
+      } finally {
+        if (!cancelled) {
+          setProvidersLoaded(true);
+        }
+      }
+    }
+
+    void loadProviders();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadMessages.errors.loadProvidersFailed]);
+
+  useEffect(() => {
     const storedJobId = window.localStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
     if (!storedJobId) {
       return;
@@ -176,11 +233,14 @@ export function UploadForm() {
       if (!files.length) {
         throw new Error(uploadMessages.errors.addImage);
       }
+      if (!selectedProvider) {
+        throw new Error(uploadMessages.errors.loadProvidersFailed);
+      }
 
       window.localStorage.removeItem(ACTIVE_JOB_STORAGE_KEY);
       setActiveJobId(null);
 
-      uppy.setMeta({ mode: DEFAULT_MODE, view_role: 'single' });
+      uppy.setMeta({ mode: selectedProvider.defaults.mode, view_role: 'single' });
       const result = await uppy.upload();
       if (!result) {
         throw new Error(uploadMessages.errors.missingUploadResult);
@@ -203,12 +263,13 @@ export function UploadForm() {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
+          providerId: selectedProvider.id,
           assetIds,
-          mode: DEFAULT_MODE,
+          mode: selectedProvider.defaults.mode,
           model: 'hitem3dv2.1',
-          quality: DEFAULT_QUALITY,
+          quality: 'high',
           outputFormat: 'glb',
-          pbr: true,
+          pbr: selectedProvider.defaults.pbr,
         }),
       });
 
@@ -233,13 +294,35 @@ export function UploadForm() {
     }
   }
 
+  const providersReady = providersLoaded && Boolean(selectedProvider);
+
   return (
     <div className="space-y-5 rounded-[2rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{uploadMessages.title}</p>
-          <p className="text-xs tracking-[0.08em] text-[color:var(--muted)]">{uploadMessages.mockModeNote}</p>
+        <div className="grid gap-4 sm:grid-cols-1">
+          <label className="space-y-2">
+            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{modelLabel}</span>
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
+              <select
+                className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
+                disabled={!providerCatalog.length || isSubmitting || Boolean(activeJobId)}
+                onChange={(event) => setProviderId(event.target.value)}
+                value={selectedProvider?.id ?? providerId}
+              >
+                {providerCatalog.map((provider) => (
+                  <option className="bg-[#0b0d12]" key={provider.id} value={provider.id}>
+                    {getProviderDisplayLabel(provider.id)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </label>
+
         </div>
+
+        {!selectedProvider && providersLoaded ? (
+          <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{uploadMessages.errors.noProviders}</p>
+        ) : null}
 
         <div className={cn('native-uploader overflow-hidden rounded-[1.75rem] border border-[color:var(--line)] bg-black/20 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.24)]', isSubmitting && 'ring-2 ring-[color:var(--ring)]')}>
           <DragDrop
@@ -254,32 +337,6 @@ export function UploadForm() {
             note={uploadMessages.dropzoneNote}
           />
         </div>
-
-        {/*
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.mode}</span>
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none">
-                <option className="bg-[#0b0d12]" value="single_image">
-                  {uploadMessages.modeSingle}
-                </option>
-              </select>
-            </div>
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.quality}</span>
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none">
-                <option className="bg-[#0b0d12]" value="high">
-                  {uploadMessages.qualityHigh}
-                </option>
-              </select>
-            </div>
-          </label>
-        </div>
-        */}
 
         {selectedFiles.length ? (
           <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[color:var(--foreground)]">
@@ -313,9 +370,9 @@ export function UploadForm() {
         {error ? <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{error}</p> : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button disabled={isSubmitting || Boolean(activeJobId)} onClick={uploadThenGenerate} size="lg" type="button">
+          <Button disabled={!providersReady || isSubmitting || Boolean(activeJobId)} onClick={uploadThenGenerate} size="lg" type="button">
             {isSubmitting ? uploadMessages.submitting : activeJobId ? uploadMessages.generating : uploadMessages.submit}
-            <ArrowLeft className="size-4" />
+            {providersLoaded ? <ArrowLeft className="size-4" /> : <Loader2 className="size-4 animate-spin" />}
           </Button>
           <p className="text-xs text-[color:var(--muted)]">{uploadMessages.singleLimit}</p>
         </div>

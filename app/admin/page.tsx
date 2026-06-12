@@ -85,8 +85,8 @@ export default async function AdminPage() {
                           {job.errorCode ?? 'error'}
                           {job.errorMessage ? ` · ${job.errorMessage}` : ''}
                         </span>
-                      ) : job.hi3dTaskId ? (
-                        <span className="text-[color:var(--accent)]">{job.hi3dTaskId}</span>
+                      ) : job.providerTaskId ? (
+                        <span className="text-[color:var(--accent)]">{job.providerId}:{job.providerTaskId}</span>
                       ) : (
                         messages.adminPage.none
                       )}

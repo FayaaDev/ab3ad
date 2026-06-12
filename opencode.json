@@ -61,7 +61,7 @@
         "--access-token",
         "{file:~/.config/opencode/secrets/supabase-access-token}"
       ],
-      "enabled": false
+      "enabled": true
     },
     "mastra": {
       "type": "local",
