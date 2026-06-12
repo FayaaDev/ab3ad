@@ -80,8 +80,6 @@
   "uploadForm": {
     "unnamedFile": "ملف بدون اسم",
     "genericFile": "الملف",
-    "title": "اختر المزوّد وخيارات الإخراج قبل بدء التوليد",
-    "mockModeNote": "التسعير والخيارات تُحمّل من الخادم",
     "dropHereOr": "أسقط الصور هنا أو %{browse}",
     "browse": "تصفح الملفات",
     "dropzoneNote": "PNG وJPG وWEBP · حتى 20 ميجابايت لكل ملف",

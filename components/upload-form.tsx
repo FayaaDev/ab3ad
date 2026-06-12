@@ -24,22 +24,11 @@ type SelectedFile = {
   size: number;
 };
 
-type ProviderCatalogOption = {
-  id: string;
-  label: string;
-  credits: number;
-};
-
 type ProviderCatalogEntry = {
   id: string;
   label: string;
-  description: string;
-  outputFormats: string[];
-  qualities: ProviderCatalogOption[];
   defaults: {
     mode: string;
-    quality: string;
-    outputFormat: string;
     pbr: boolean;
   };
 };
@@ -49,6 +38,17 @@ type TerminalNotice = 'completed' | 'other' | null;
 const ACTIVE_JOB_STORAGE_KEY = 'ab3ad:active-job-id';
 const completedProfileMessage = 'اكتمل النموذج. يمكنك تنزيله من ملفك الشخصي.';
 const terminalProfileMessage = 'انتهت المهمة. يمكنك مراجعة التفاصيل من ملفك الشخصي.';
+const modelLabel = 'النموذج';
+
+function getProviderDisplayLabel(providerId: string) {
+  if (providerId === 'hi3d') {
+    return 'محرك الفا';
+  }
+  if (providerId === 'printpal') {
+    return 'محرك بيتا';
+  }
+  return providerId;
+}
 
 export function UploadForm() {
   const [uploadedAssets, setUploadedAssets] = useState<UploadedAsset[]>([]);
@@ -60,15 +60,12 @@ export function UploadForm() {
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalogEntry[]>([]);
   const [providersLoaded, setProvidersLoaded] = useState(false);
   const [providerId, setProviderId] = useState('hi3d');
-  const [quality, setQuality] = useState('high');
-  const [outputFormat, setOutputFormat] = useState('glb');
   const uploadMessages = messages.uploadForm;
 
   const selectedProvider = useMemo(
     () => providerCatalog.find((provider) => provider.id === providerId) ?? providerCatalog[0] ?? null,
     [providerCatalog, providerId],
   );
-  const selectedQuality = selectedProvider?.qualities.find((entry) => entry.id === quality) ?? selectedProvider?.qualities[0] ?? null;
 
   function resetUploadState() {
     setActiveJobId(null);
@@ -187,19 +184,6 @@ export function UploadForm() {
   }, [uploadMessages.errors.loadProvidersFailed]);
 
   useEffect(() => {
-    if (!selectedProvider) {
-      return;
-    }
-
-    if (!selectedProvider.qualities.some((entry) => entry.id === quality)) {
-      setQuality(selectedProvider.defaults.quality);
-    }
-    if (!selectedProvider.outputFormats.includes(outputFormat)) {
-      setOutputFormat(selectedProvider.defaults.outputFormat);
-    }
-  }, [outputFormat, quality, selectedProvider]);
-
-  useEffect(() => {
     const storedJobId = window.localStorage.getItem(ACTIVE_JOB_STORAGE_KEY);
     if (!storedJobId) {
       return;
@@ -249,7 +233,7 @@ export function UploadForm() {
       if (!files.length) {
         throw new Error(uploadMessages.errors.addImage);
       }
-      if (!selectedProvider || !selectedQuality) {
+      if (!selectedProvider) {
         throw new Error(uploadMessages.errors.loadProvidersFailed);
       }
 
@@ -283,8 +267,8 @@ export function UploadForm() {
           assetIds,
           mode: selectedProvider.defaults.mode,
           model: 'hitem3dv2.1',
-          quality: selectedQuality.id,
-          outputFormat,
+          quality: 'high',
+          outputFormat: 'glb',
           pbr: selectedProvider.defaults.pbr,
         }),
       });
@@ -310,92 +294,33 @@ export function UploadForm() {
     }
   }
 
-  const providersReady = providersLoaded && Boolean(selectedProvider && selectedQuality);
+  const providersReady = providersLoaded && Boolean(selectedProvider);
 
   return (
     <div className="space-y-5 rounded-[2rem] border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
       <div className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-[11px] tracking-[0.18em] text-[color:var(--accent)]">{uploadMessages.title}</p>
-          <p className="text-xs tracking-[0.08em] text-[color:var(--muted)]">{uploadMessages.mockModeNote}</p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-1">
           <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.provider}</span>
+            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{modelLabel}</span>
             <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
               <select
                 className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
                 disabled={!providerCatalog.length || isSubmitting || Boolean(activeJobId)}
-                onChange={(event) => {
-                  const nextProvider = providerCatalog.find((provider) => provider.id === event.target.value);
-                  setProviderId(event.target.value);
-                  if (nextProvider) {
-                    setQuality(nextProvider.defaults.quality);
-                    setOutputFormat(nextProvider.defaults.outputFormat);
-                  }
-                }}
+                onChange={(event) => setProviderId(event.target.value)}
                 value={selectedProvider?.id ?? providerId}
               >
                 {providerCatalog.map((provider) => (
                   <option className="bg-[#0b0d12]" key={provider.id} value={provider.id}>
-                    {provider.label}
+                    {getProviderDisplayLabel(provider.id)}
                   </option>
                 ))}
               </select>
             </div>
           </label>
 
-          <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.quality}</span>
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select
-                className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm text-[color:var(--foreground)] outline-none"
-                disabled={!selectedProvider || isSubmitting || Boolean(activeJobId)}
-                onChange={(event) => setQuality(event.target.value)}
-                value={selectedQuality?.id ?? quality}
-              >
-                {(selectedProvider?.qualities ?? []).map((entry) => (
-                  <option className="bg-[#0b0d12]" key={entry.id} value={entry.id}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{uploadMessages.outputFormat}</span>
-            <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-1">
-              <select
-                className="w-full appearance-none rounded-[1.2rem] border border-white/10 bg-transparent px-4 py-3 text-sm uppercase text-[color:var(--foreground)] outline-none"
-                disabled={!selectedProvider || isSubmitting || Boolean(activeJobId)}
-                onChange={(event) => setOutputFormat(event.target.value)}
-                value={outputFormat}
-              >
-                {(selectedProvider?.outputFormats ?? []).map((format) => (
-                  <option className="bg-[#0b0d12]" key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </label>
         </div>
 
-        {selectedProvider ? (
-          <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3 text-sm text-[color:var(--foreground)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] tracking-[0.14em] text-[color:var(--muted)]">{selectedProvider.label}</p>
-                <p className="mt-1 text-[color:var(--muted-strong)]">{selectedProvider.description}</p>
-              </div>
-              <div className="rounded-full border border-[rgba(193,168,106,0.26)] bg-[rgba(193,168,106,0.12)] px-4 py-2 text-xs tracking-[0.14em] text-[color:var(--accent)]">
-                {uploadMessages.estimatedCost} {selectedQuality?.credits ?? 0}
-              </div>
-            </div>
-          </div>
-        ) : providersLoaded ? (
+        {!selectedProvider && providersLoaded ? (
           <p className="rounded-[1.25rem] border border-[rgba(245,168,161,0.22)] bg-[rgba(245,168,161,0.08)] px-4 py-3 text-sm text-[color:var(--danger)]">{uploadMessages.errors.noProviders}</p>
         ) : null}
 

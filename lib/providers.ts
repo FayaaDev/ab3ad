@@ -167,10 +167,6 @@ const hi3dAdapter: ProviderAdapter = {
 
 const printpalMockTasks = new Map<string, { createdAt: number; outputFormat: OutputFormat }>();
 
-function isPrintPalMockMode() {
-  return (process.env.PRINTPAL_MODE ?? 'mock') === 'mock';
-}
-
 async function fetchPrintPal(url: string, init: RequestInit) {
   const apiKey = process.env.PRINTPAL_API_KEY;
   if (!apiKey) {
@@ -260,7 +256,7 @@ function getPrintPalResult(payload: Record<string, unknown>) {
 const printpalAdapter: ProviderAdapter = {
   id: 'printpal',
   async submit(job, assets) {
-    if (isPrintPalMockMode()) {
+    if (process.env.PRINTPAL_MODE === 'mock') {
       await sleep(200);
       const taskId = `printpal-mock-${uuid()}`;
       printpalMockTasks.set(taskId, { createdAt: Date.now(), outputFormat: job.outputFormat });
@@ -289,7 +285,7 @@ const printpalAdapter: ProviderAdapter = {
       throw new Error('Provider task id is missing.');
     }
 
-    if (isPrintPalMockMode()) {
+    if (process.env.PRINTPAL_MODE === 'mock') {
       const task = printpalMockTasks.get(job.providerTaskId);
       const age = Date.now() - (task?.createdAt ?? Date.now());
       const durationMs = Math.max(800, getMockHi3DDurationMs());
