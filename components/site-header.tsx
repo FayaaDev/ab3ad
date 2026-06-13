@@ -1,3 +1,4 @@
+import logo from '@/assets/logo/logo-transparent.png';
 import { shouldTreatAsAdmin } from '@/lib/auth-utils';
 import { getCurrentUser } from '@/lib/auth';
 import { ProfileMenu } from '@/components/profile-menu';
@@ -11,7 +12,8 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[rgba(7,8,14,0.72)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-4 lg:px-8">
         <div className="space-y-1">
-          <a className="inline-flex items-baseline gap-3" href="/">
+          <a className="inline-flex items-center gap-3" href="/">
+            <img src={logo.src} alt="" aria-hidden="true" className="h-11 w-11 shrink-0" />
             <span className="font-serif text-3xl tracking-[0.18em] text-[color:var(--foreground)]">أبعاد</span>
             <span className="text-[10px] tracking-[0.18em] text-[color:var(--muted)]">{messages.siteHeader.brandTag}</span>
           </a>
