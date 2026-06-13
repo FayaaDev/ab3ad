@@ -11,6 +11,10 @@
     "logout": "خروج",
     "login": "تسجيل الدخول"
   },
+  "siteBadges": {
+    "whatsappLabel": "تواصل عبر واتساب",
+    "certificateLabel": "فتح وثيقة العمل الحر"
+  },
   "home": {
     "loginPrompt": "سجّل الدخول لتتمكن من رفع الصور.",
     "loginCta": "تسجيل الدخول"
@@ -26,6 +30,9 @@
     "name": "الاسم",
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور",
+    "registerContactTitle": "التسجيل مغلق مؤقتاً",
+    "registerContactNotice": "يرجى التواصل على  الواتس اب لاستقبال الطلبات",
+    "registerContactClose": "إغلاق",
     "loading": "جارٍ المتابعة…",
     "loginSubmit": "ادخل إلى حسابك",
     "registerSubmit": "أنشئ الحساب"

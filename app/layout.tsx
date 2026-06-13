@@ -2,6 +2,7 @@ import './globals.css';
 import type { ReactNode } from 'react';
 import localFont from 'next/font/local';
 
+import { SiteBadges } from '@/components/site-badges';
 import { SiteHeader } from '@/components/site-header';
 import { messages } from '@/lib/messages';
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="pointer-events-none absolute inset-0 noise-overlay opacity-40" />
           <SiteHeader />
           <main className="relative mx-auto max-w-7xl px-6 py-10 lg:px-8 lg:py-14">{children}</main>
+          <SiteBadges />
         </div>
       </body>
     </html>
