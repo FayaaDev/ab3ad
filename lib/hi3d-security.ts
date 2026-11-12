@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
-function getAllowedHosts() {
-  return (process.env.HI3D_ALLOWED_RESULT_HOSTS ?? '')
+function getAllowedHosts(csv: string) {
+  return csv
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
@@ -35,7 +35,7 @@ export function verifyHi3DCallbackSignature(rawBody: string, headers: Headers) {
   return normalized === expected;
 }
 
-export function assertTrustedResultUrl(sourceUrl: string) {
+export function assertTrustedResultUrlWithAllowedHosts(sourceUrl: string, allowedHostsCsv: string) {
   const url = new URL(sourceUrl);
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new Error(`Unsupported result URL protocol: ${url.protocol}`);
@@ -44,8 +44,12 @@ export function assertTrustedResultUrl(sourceUrl: string) {
     throw new Error('Result download URLs must use HTTPS in production.');
   }
 
-  const allowedHosts = getAllowedHosts();
+  const allowedHosts = getAllowedHosts(allowedHostsCsv);
   if (allowedHosts.length && !allowedHosts.includes(url.hostname.toLowerCase())) {
     throw new Error(`Untrusted result URL host: ${url.hostname}`);
   }
+}
+
+export function assertTrustedResultUrl(sourceUrl: string) {
+  return assertTrustedResultUrlWithAllowedHosts(sourceUrl, process.env.HI3D_ALLOWED_RESULT_HOSTS ?? '');
 }

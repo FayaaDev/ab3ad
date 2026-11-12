@@ -66,17 +66,18 @@ after(async () => {
   await closePoolForTests();
 });
 
-test('provider catalog exposes Hi3D and PrintPal with safe pricing metadata', () => {
+test('provider catalog exposes Hi3D, Hyper3D, and PrintPal with safe pricing metadata', () => {
   const providers = listProviderCatalog();
   assert.deepEqual(
     providers.map((provider) => provider.id),
-    ['hi3d', 'printpal'],
+    ['hi3d', 'hyper3d', 'printpal'],
   );
   assert.equal(providers[0]?.qualities.some((entry) => typeof entry.credits === 'number'), true);
 });
 
 test('provider validation enforces provider-specific modes and formats', () => {
   assert.doesNotThrow(() => validateProviderSelection({ providerId: 'hi3d', mode: 'single_image', quality: 'fast', outputFormat: 'glb' }));
+  assert.doesNotThrow(() => validateProviderSelection({ providerId: 'hyper3d', mode: 'multi_view', quality: 'high', outputFormat: 'fbx' }));
   assert.throws(() => validateProviderSelection({ providerId: 'hi3d', mode: 'single_image', quality: 'fast', outputFormat: 'obj' }), /does not support OBJ output/i);
   assert.throws(() => validateProviderSelection({ providerId: 'printpal', mode: 'multi_view', quality: 'fast', outputFormat: 'glb' }), /does not support multi view mode/i);
 });
@@ -85,6 +86,14 @@ test('provider helpers derive pricing, options, and output metadata', () => {
   const snapshot = createPricingSnapshot({ providerId: 'printpal', mode: 'single_image', quality: 'high', outputFormat: 'obj' });
   assert.equal(snapshot.credits, 3);
   assert.equal(snapshot.providerRateLabel, 'Production');
+
+  assert.deepEqual(buildProviderOptions({ providerId: 'hyper3d', mode: 'multi_view', model: 'ignored', quality: 'fast', pbr: false }), {
+    quality: 'fast',
+    tier: 'Gen-2.5-Low',
+    meshMode: 'Raw',
+    material: 'Shaded',
+    pbr: false,
+  });
 
   assert.deepEqual(buildProviderOptions({ providerId: 'printpal', mode: 'single_image', model: 'ignored', quality: 'high', pbr: false }), {
     quality: 'high',
@@ -176,7 +185,98 @@ test('printpal adapter mock path completes through the shared job runner and set
   }
 });
 
-test('provider adapter lookup returns PrintPal adapter', async () => {
-  const adapter = getProviderAdapter('printpal');
-  assert.equal(adapter.id, 'printpal');
+test('hyper3d adapter mock path completes through the shared job runner and settles reserved credits', async () => {
+  const previousEnv = { ...process.env };
+  const storageRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ab3ad-hyper3d-'));
+
+  try {
+    Object.assign(process.env, {
+      NODE_ENV: 'test',
+      HYPER3D_MODE: 'mock',
+      HI3D_MODE: 'mock',
+      HI3D_MOCK_DURATION_MS: '1',
+      PREVIEW_GLB_GENERATION: 'disabled',
+      STORAGE_DRIVER: 'local',
+      STORAGE_ROOT: storageRoot,
+      JOB_QUEUE_MODE: 'inline',
+    });
+
+    global.fetch = async () =>
+      new Response(Buffer.from('cover-image'), {
+        status: 200,
+        headers: { 'content-type': 'image/png' },
+      });
+
+    const user = await createTestUser('hyper3d');
+    await recordWalletEvent({ userId: user.id, eventType: 'wallet_deposit', creditDelta: 5 });
+
+    const front = await createFileAsset({
+      userId: user.id,
+      storageKey: `uploads/${user.id}/${uuid()}.png`,
+      originalFilename: 'front.png',
+      mimeType: 'image/png',
+      sizeBytes: 128,
+      sha256: uuid(),
+      role: 'front',
+    });
+    const back = await createFileAsset({
+      userId: user.id,
+      storageKey: `uploads/${user.id}/${uuid()}.png`,
+      originalFilename: 'back.png',
+      mimeType: 'image/png',
+      sizeBytes: 128,
+      sha256: uuid(),
+      role: 'back',
+    });
+    await fs.mkdir(path.dirname(path.join(storageRoot, front.storageKey)), { recursive: true });
+    await fs.writeFile(path.join(storageRoot, front.storageKey), Buffer.from('front-image'));
+    await fs.writeFile(path.join(storageRoot, back.storageKey), Buffer.from('back-image'));
+
+    const pricingSnapshot = createPricingSnapshot({ providerId: 'hyper3d', mode: 'multi_view', quality: 'high', outputFormat: 'fbx' });
+    const job = await createGenerationJob({
+      userId: user.id,
+      assetIds: [front.id, back.id],
+      mode: 'multi_view',
+      status: 'queued',
+      providerId: 'hyper3d',
+      providerOptions: buildProviderOptions({ providerId: 'hyper3d', mode: 'multi_view', model: 'unused', quality: 'high', pbr: true }),
+      pricingSnapshot,
+      settlementState: 'unreserved',
+      model: 'unused',
+      resolution: '1536pro',
+      faceCount: 'high',
+      pbr: true,
+      outputFormat: 'fbx',
+    });
+
+    await reserveGenerationCredits({ userId: user.id, jobId: job.id, credits: pricingSnapshot.credits, pricingSnapshot });
+    await processJob(job.id);
+    await new Promise((resolve) => setTimeout(resolve, 850));
+    await processJob(job.id);
+
+    const storedJob = await getGenerationJob(job.id);
+    assert.equal(storedJob?.status, 'completed');
+    assert.equal(storedJob?.settlementState, 'settled');
+    assert.equal(await getWalletBalance(user.id), 3);
+
+    const resultAsset = await getFileAsset(storedJob!.resultAssetId!);
+    assert.equal(resultAsset?.originalFilename.endsWith('.fbx'), true);
+    assert.equal(resultAsset?.mimeType, 'application/octet-stream');
+    assert.equal((await readStorageObject(resultAsset!.storageKey)).byteLength > 0, true);
+
+    const walletEvents = await listWalletEvents(user.id);
+    assert.deepEqual(
+      walletEvents.map((event) => event.eventType),
+      ['generation_settled', 'generation_reserved', 'wallet_deposit'],
+    );
+  } finally {
+    restoreEnv(previousEnv);
+    global.fetch = originalFetch;
+    await fs.rm(storageRoot, { recursive: true, force: true });
+  }
+});
+
+test('provider adapter lookup returns Hyper3D and PrintPal adapters', async () => {
+  assert.equal(getProviderAdapter('hyper3d').id, 'hyper3d');
+  assert.equal(getProviderAdapter('printpal').id, 'printpal');
 });

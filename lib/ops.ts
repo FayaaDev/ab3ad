@@ -21,6 +21,24 @@ function checkHi3DConfig() {
   };
 }
 
+function checkHyper3DConfig() {
+  const mode = process.env.HYPER3D_MODE ?? 'mock';
+  if (mode === 'mock') {
+    return { mode };
+  }
+
+  const required = ['HYPER3D_API_KEY'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length) {
+    throw new Error(`Missing Hyper3D configuration: ${missing.join(', ')}`);
+  }
+
+  return {
+    mode,
+    baseUrl: process.env.HYPER3D_BASE_URL ?? 'https://api.hyper3d.com/api/v2',
+  };
+}
+
 export async function checkReadiness() {
   await ensureDatabaseSchema();
   await getPool().query('select 1');
@@ -33,5 +51,6 @@ export async function checkReadiness() {
     queue,
     storage,
     hi3d: checkHi3DConfig(),
+    hyper3d: checkHyper3DConfig(),
   };
 }

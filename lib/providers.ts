@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { v4 as uuid } from 'uuid';
 import { getHi3DError } from '@/lib/hi3d-contract';
+import { queryHyper3DTask, submitHyper3DTask } from '@/lib/hyper3d-client';
 import { getMockHi3DDurationMs, normalizeHi3DErrorMessage, queryTask as queryHi3DTask, submitTask as submitHi3DTask } from '@/lib/hi3d-client';
-import { assertTrustedResultUrl } from '@/lib/hi3d-security';
+import { assertTrustedResultUrl, assertTrustedResultUrlWithAllowedHosts } from '@/lib/hi3d-security';
 import { readStorageObject } from '@/lib/storage';
 import type { FileAsset, GenerationJob, GenerationMode, OutputFormat, ProviderId, ProviderPricingSnapshot, QualityPreset } from '@/lib/types';
 import { sleep } from '@/lib/utils';
@@ -24,6 +25,7 @@ export interface ProviderTaskQuery {
 
 export interface ProviderSubmitResponse {
   taskId: string;
+  providerOptionsPatch?: Record<string, unknown>;
   raw: Record<string, unknown>;
 }
 
@@ -73,6 +75,18 @@ const providerCatalog: Record<ProviderId, ProviderCatalogEntry> = {
     qualities: [
       { id: 'fast', label: 'Fast', credits: 1 },
       { id: 'high', label: 'High', credits: 2 },
+    ],
+    defaults: { mode: 'single_image', quality: 'high', outputFormat: 'glb', pbr: true },
+  },
+  hyper3d: {
+    id: 'hyper3d',
+    label: 'Hyper3D',
+    description: 'Rodin image-to-3D generation through the Hyper3D API.',
+    modes: ['single_image', 'multi_view'],
+    outputFormats: ['glb', 'fbx', 'obj', 'stl'],
+    qualities: [
+      { id: 'fast', label: 'Gen-2.5 Low', credits: 1 },
+      { id: 'high', label: 'Gen-2.5 High', credits: 2 },
     ],
     defaults: { mode: 'single_image', quality: 'high', outputFormat: 'glb', pbr: true },
   },
@@ -162,6 +176,33 @@ const hi3dAdapter: ProviderAdapter = {
       return;
     }
     assertTrustedResultUrl(url);
+  },
+};
+
+function getHyper3DProviderOptions(job: GenerationJob) {
+  const options = job.providerOptions;
+  return {
+    ...options,
+    tier: typeof options.tier === 'string' ? options.tier : 'Gen-2.5-High',
+    meshMode: typeof options.meshMode === 'string' ? options.meshMode : 'Raw',
+    material: typeof options.material === 'string' ? options.material : job.pbr ? 'PBR' : 'Shaded',
+    outputFormat: typeof options.outputFormat === 'string' ? options.outputFormat : job.outputFormat,
+  };
+}
+
+const hyper3dAdapter: ProviderAdapter = {
+  id: 'hyper3d',
+  async submit(job, assets) {
+    return submitHyper3DTask({ ...job, providerOptions: getHyper3DProviderOptions(job) }, assets);
+  },
+  async query(job) {
+    return queryHyper3DTask({ ...job, providerOptions: getHyper3DProviderOptions(job) });
+  },
+  assertResultUrl(url) {
+    if (url.startsWith('data:')) {
+      return;
+    }
+    assertTrustedResultUrlWithAllowedHosts(url, process.env.HYPER3D_ALLOWED_RESULT_HOSTS ?? '');
   },
 };
 
@@ -320,6 +361,7 @@ const printpalAdapter: ProviderAdapter = {
 
 const providerAdapters: Record<ProviderId, ProviderAdapter> = {
   hi3d: hi3dAdapter,
+  hyper3d: hyper3dAdapter,
   printpal: printpalAdapter,
 };
 

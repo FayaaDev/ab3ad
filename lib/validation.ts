@@ -7,7 +7,7 @@ const allowedMimeTypeSet = new Set(ALLOWED_MIME_TYPES);
 const singleExtensions = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 
 export const generationSchema = z.object({
-  providerId: z.enum(['hi3d', 'printpal']).default('hi3d'),
+  providerId: z.enum(['hi3d', 'hyper3d', 'printpal']).default('hi3d'),
   assetIds: z.array(z.string().min(1)).min(1).max(4),
   mode: z.enum(['single_image', 'multi_view']),
   model: z.string().default('hitem3dv2.1'),
@@ -97,6 +97,16 @@ export function buildProviderOptions(input: { providerId: ProviderId; mode: Gene
       quality: input.quality,
       resolution: qualityToResolution(input.quality),
       faceCount: input.mode === 'single_image' ? DEFAULT_SINGLE_IMAGE_FACE_COUNT : 'high',
+      pbr: input.pbr,
+    };
+  }
+
+  if (input.providerId === 'hyper3d') {
+    return {
+      quality: input.quality,
+      tier: input.quality === 'fast' ? 'Gen-2.5-Low' : 'Gen-2.5-High',
+      meshMode: 'Raw',
+      material: input.pbr ? 'PBR' : 'Shaded',
       pbr: input.pbr,
     };
   }

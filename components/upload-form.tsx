@@ -44,6 +44,9 @@ function getProviderDisplayLabel(providerId: string) {
   if (providerId === 'hi3d') {
     return 'محرك الفا';
   }
+  if (providerId === 'hyper3d') {
+    return 'محرك هايبر';
+  }
   if (providerId === 'printpal') {
     return 'محرك بيتا';
   }

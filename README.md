@@ -14,7 +14,7 @@ Next.js app for turning uploaded images into Ab3ad3d generation jobs with Postgr
 - `GET /api/health`
 - Email/password auth with signed HTTP-only sessions
 - Admin access allowlisting via `ADMIN_EMAILS` / `ADMIN_USER_IDS`
-- Dedicated `lib/hi3d-client.ts`
+- Dedicated provider clients for Hi3D and Hyper3D
 - PostgreSQL persistence for users, assets, jobs, events, and billing entries
 - Redis + BullMQ queueing for generation work
 - Cloudflare R2 storage for uploads and generated results
@@ -41,6 +41,7 @@ To test long-running mock generations without spending Ab3ad3d tokens, set `HI3D
 
 - `HI3D_MODE=mock` is only for local/dev. Set `HI3D_MODE=real` in production for Ab3ad3d processing.
 - Real Image-to-3D mode expects the current Hitem3D API host and envelope contract: `HI3D_BASE_URL=https://api.hitem3d.ai`, token requests go to `/open-api/v1/auth/token`, and submit/query responses return fields under `data`.
+- `HYPER3D_MODE=mock` is available for local/dev provider testing. Set `HYPER3D_MODE=real` and `HYPER3D_API_KEY` to enable Hyper3D Rodin generation against `HYPER3D_BASE_URL` (defaults to `https://api.hyper3d.com/api/v2`).
 - `AUTH_SECRET` is required outside mock/demo usage; use a long random value.
 - `npm run worker` must be running for background submission, polling fallback, and result download processing.
 - `HI3D_CALLBACK_SECRET` secures the Ab3ad3d callback endpoint. The app accepts either:
@@ -48,7 +49,7 @@ To test long-running mock generations without spending Ab3ad3d tokens, set `HI3D
   - `x-hi3d-callback-secret: <secret>`
   - `x-hi3d-signature: sha256=<hmac(rawBody)>`
 - `HI3D_CALLBACK_URL_FIELD`, `HI3D_CALLBACK_SECRET_FIELD`, and `HI3D_SUBMIT_EXTRA_FIELDS` let you adapt submit payload fields to the exact Ab3ad3d production contract without code changes.
-- Result downloads can be restricted with `HI3D_ALLOWED_RESULT_HOSTS=host1,host2`.
+- Result downloads can be restricted with `HI3D_ALLOWED_RESULT_HOSTS=host1,host2` and `HYPER3D_ALLOWED_RESULT_HOSTS=host1,host2`.
 - `/api/health` is restricted to signed-in admins unless you provide `HEALTHCHECK_TOKEN` via `Authorization: Bearer ...` or `x-healthcheck-token`.
 - R2 is the default object storage backend. Set `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`.
 - For no-cloud local testing only, set `STORAGE_DRIVER=local`; otherwise leave it as `r2`.
@@ -64,4 +65,4 @@ npm run build
 npm run healthcheck
 ```
 
-`npm run healthcheck` verifies PostgreSQL schema access, Redis/queue connectivity, storage readiness, and the active Ab3ad3d mode/configuration.
+`npm run healthcheck` verifies PostgreSQL schema access, Redis/queue connectivity, storage readiness, and the active provider mode/configuration.

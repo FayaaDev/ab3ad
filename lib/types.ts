@@ -7,7 +7,7 @@ export type ViewRole = 'single' | (typeof MULTI_VIEW_ROLES)[number];
 export type GenerationMode = 'single_image' | 'multi_view';
 export type OutputFormat = 'glb' | 'obj' | 'stl' | 'fbx' | 'usdz';
 export type QualityPreset = 'fast' | 'high';
-export type ProviderId = 'hi3d' | 'printpal';
+export type ProviderId = 'hi3d' | 'hyper3d' | 'printpal';
 
 export type JobStatus =
   | 'draft'

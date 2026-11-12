@@ -201,6 +201,7 @@ export async function processJob(jobId: string) {
       await updateGenerationJob(jobId, {
         status: 'submitted',
         providerTaskId: submission.taskId,
+        providerOptions: submission.providerOptionsPatch ? { ...job.providerOptions, ...submission.providerOptionsPatch } : job.providerOptions,
         errorCode: undefined,
         errorMessage: undefined,
         pollAttempts: 0,
